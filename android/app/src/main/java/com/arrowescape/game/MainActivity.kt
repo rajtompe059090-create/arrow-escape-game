@@ -31,17 +31,26 @@ enum class AppScreen {
 }
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
+
         setContent {
             ArrowEscapeTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val prefsRepo = remember { UserPreferencesRepository(applicationContext) }
-                    val viewModel: GameViewModel = viewModel { GameViewModel(prefsRepo) }
+                    val prefsRepo = remember {
+                        UserPreferencesRepository(applicationContext)
+                    }
+
+                    val viewModel: GameViewModel = viewModel {
+                        GameViewModel(prefsRepo)
+                    }
+
                     ArrowEscapeApp(viewModel)
                 }
             }
@@ -54,59 +63,103 @@ fun ArrowEscapeApp(
     viewModel: GameViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
+
+    var currentScreen by remember {
+        mutableStateOf(AppScreen.SPLASH)
+    }
 
     when (currentScreen) {
+
+        // ---------------- SPLASH ----------------
         AppScreen.SPLASH -> {
+
             SplashScreen(
-                onStart = { currentScreen = AppScreen.HOME }
+                onStart = {
+                    currentScreen = AppScreen.HOME
+                }
             )
         }
+
+        // ---------------- HOME ----------------
         AppScreen.HOME -> {
+
             HomeScreen(
                 uiState = uiState,
+
                 onContinueGame = {
                     viewModel.loadLevel(uiState.unlockedLevel)
                     currentScreen = AppScreen.GAME
                 },
+
                 onSelectLevels = {
                     currentScreen = AppScreen.LEVEL_SELECT
                 },
+
                 onOpenWallet = {
-                    // Open wallet sheet / dialog
+                    // Wallet screen will be added later
                 },
+
                 onToggleSound = {
                     viewModel.toggleSound()
                 }
             )
         }
+
+        // ---------------- LEVEL SELECT ----------------
         AppScreen.LEVEL_SELECT -> {
+
             LevelSelectScreen(
                 uiState = uiState,
+
                 onSelectLevel = { levelId ->
+
                     viewModel.loadLevel(levelId)
+
                     currentScreen = AppScreen.GAME
                 },
+
                 onBack = {
                     currentScreen = AppScreen.HOME
                 }
             )
         }
+
+        // ---------------- GAME ----------------
         AppScreen.GAME -> {
+
             GameScreen(
                 uiState = uiState,
+
                 onArrowTapped = { arrow ->
                     viewModel.onArrowTapped(arrow)
                 },
+
                 onUseHint = {
                     viewModel.useHint()
                 },
+
                 onRestartLevel = {
                     viewModel.restartCurrentLevel()
                 },
+
+                // NEW: Next Level
+                onNextLevel = {
+
+                    val currentLevelId =
+                        uiState.currentLevel?.id ?: 1
+
+                    val nextLevelId =
+                        currentLevelId + 1
+
+                    viewModel.loadLevel(nextLevelId)
+
+                    currentScreen = AppScreen.GAME
+                },
+
                 onOpenLevels = {
                     currentScreen = AppScreen.LEVEL_SELECT
                 },
+
                 onBack = {
                     currentScreen = AppScreen.LEVEL_SELECT
                 }
