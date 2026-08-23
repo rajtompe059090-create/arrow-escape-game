@@ -23,7 +23,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.arrowescape.game.model.Arrow
 import com.arrowescape.game.model.Direction
-import kotlin.math.abs
 import kotlin.math.sqrt
 
 @Composable
@@ -42,14 +41,23 @@ fun PuzzleBoard(
     val blockedColor = Color(0xFFEF4444)
     val dotColor = Color(0xFFE2E8F0)
 
+    /*
+     * Animation:
+     * 0f = arrow board par hai
+     * 1f = arrow board se completely bahar hai
+     */
     val escapeProgress = remember {
         Animatable(0f)
     }
 
-    val escapingArrow = arrows.firstOrNull {
-        escapingArrowIds.contains(it.id)
+    val escapingArrow = arrows.firstOrNull { arrow ->
+        escapingArrowIds.contains(arrow.id)
     }
 
+    /*
+     * Jab arrow escaping state mein aaye,
+     * usko smoothly board ke bahar move karo.
+     */
     LaunchedEffect(escapingArrow?.id) {
         if (escapingArrow != null) {
             escapeProgress.snapTo(0f)
@@ -57,7 +65,7 @@ fun PuzzleBoard(
             escapeProgress.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(
-                    durationMillis = 550
+                    durationMillis = 500
                 )
             )
         } else {
@@ -81,52 +89,48 @@ fun PuzzleBoard(
                 .pointerInput(arrows, escapingArrowIds) {
                     detectTapGestures { tapOffset ->
 
-                        val cellW =
-                            size.width / (gridWidth - 1).coerceAtLeast(1)
+                        val cellW: Float =
+                            size.width /
+                                    (gridWidth - 1)
+                                        .coerceAtLeast(1)
+                                        .toFloat()
 
-                        val cellH =
-                            size.height / (gridHeight - 1).coerceAtLeast(1)
+                        val cellH: Float =
+                            size.height /
+                                    (gridHeight - 1)
+                                        .coerceAtLeast(1)
+                                        .toFloat()
 
-                        val hitRadius =
-                            minOf(cellW, cellH) * 0.75f
+                        val hit = arrows.findLast { arrow ->
 
-                        val hit = arrows
-                            .asReversed()
-                            .firstOrNull { arrow ->
+                            // Jo arrow already escape kar raha hai
+                            // usko dobara tap nahi kar sakte.
+                            if (escapingArrowIds.contains(arrow.id)) {
+                                false
+                            } else {
+                                arrow.points.any { point ->
 
-                                if (escapingArrowIds.contains(arrow.id)) {
-                                    false
-                                } else {
+                                    val px =
+                                        point.x.toFloat() * cellW
 
-                                    // Check every segment of the arrow.
-                                    arrow.points.zipWithNext().any { segment ->
+                                    val py =
+                                        point.y.toFloat() * cellH
 
-                                        val p1 = segment.first
-                                        val p2 = segment.second
+                                    val dx =
+                                        tapOffset.x - px
 
-                                        val x1 =
-                                            p1.x * cellW
+                                    val dy =
+                                        tapOffset.y - py
 
-                                        val y1 =
-                                            p1.y * cellH
+                                    val distance =
+                                        sqrt(
+                                            dx * dx + dy * dy
+                                        )
 
-                                        val x2 =
-                                            p2.x * cellW
-
-                                        val y2 =
-                                            p2.y * cellH
-
-                                        distanceToSegment(
-                                            tapOffset.x,
-                                            tapOffset.y,
-                                            x1,
-                                            y1,
-                                            x2,
-                                            y2
-                                        ) <= hitRadius
-                                    }
+                                    distance <= cellW * 0.65f
                                 }
                             }
+                        }
 
                         hit?.let {
                             onArrowTapped(it)
@@ -135,15 +139,21 @@ fun PuzzleBoard(
                 }
         ) {
 
-            val cellW =
-                size.width / (gridWidth - 1).coerceAtLeast(1)
+            val cellW: Float =
+                size.width /
+                        (gridWidth - 1)
+                            .coerceAtLeast(1)
+                            .toFloat()
 
-            val cellH =
-                size.height / (gridHeight - 1).coerceAtLeast(1)
+            val cellH: Float =
+                size.height /
+                        (gridHeight - 1)
+                            .coerceAtLeast(1)
+                            .toFloat()
 
-            // -----------------------------
-            // GRID
-            // -----------------------------
+            // --------------------------------
+            // GRID DOTS
+            // --------------------------------
 
             for (gx in 0 until gridWidth) {
                 for (gy in 0 until gridHeight) {
@@ -152,16 +162,16 @@ fun PuzzleBoard(
                         color = dotColor,
                         radius = 3.dp.toPx(),
                         center = Offset(
-                            gx * cellW,
-                            gy * cellH
+                            gx.toFloat() * cellW,
+                            gy.toFloat() * cellH
                         )
                     )
                 }
             }
 
-            // -----------------------------
-            // ARROWS
-            // -----------------------------
+            // --------------------------------
+            // DRAW ARROWS
+            // --------------------------------
 
             arrows.forEach { arrow ->
 
@@ -187,48 +197,51 @@ fun PuzzleBoard(
                         5.5.dp.toPx()
                     }
 
-                // -----------------------------
+                // --------------------------------
                 // ESCAPE MOVEMENT
-                // -----------------------------
+                // --------------------------------
 
                 var offsetX = 0f
                 var offsetY = 0f
 
                 if (isEscaping) {
 
-                    val distanceX =
-                        size.width + cellW * 3f
+                    val distanceX: Float =
+                        size.width + cellW * 2f
 
-                    val distanceY =
-                        size.height + cellH * 3f
+                    val distanceY: Float =
+                        size.height + cellH * 2f
+
+                    val progress: Float =
+                        escapeProgress.value
 
                     when (arrow.headDirection) {
 
                         Direction.UP -> {
                             offsetY =
-                                -distanceY * escapeProgress.value
+                                -distanceY * progress
                         }
 
                         Direction.DOWN -> {
                             offsetY =
-                                distanceY * escapeProgress.value
+                                distanceY * progress
                         }
 
                         Direction.LEFT -> {
                             offsetX =
-                                -distanceX * escapeProgress.value
+                                -distanceX * progress
                         }
 
                         Direction.RIGHT -> {
                             offsetX =
-                                distanceX * escapeProgress.value
+                                distanceX * progress
                         }
                     }
                 }
 
-                // -----------------------------
-                // ARROW PATH
-                // -----------------------------
+                // --------------------------------
+                // ARROW BODY / PATH
+                // --------------------------------
 
                 if (arrow.points.size >= 2) {
 
@@ -238,18 +251,18 @@ fun PuzzleBoard(
                             arrow.points.first()
 
                         moveTo(
-                            first.x * cellW + offsetX,
-                            first.y * cellH + offsetY
+                            first.x.toFloat() * cellW + offsetX,
+                            first.y.toFloat() * cellH + offsetY
                         )
 
                         for (i in 1 until arrow.points.size) {
 
-                            val pt =
+                            val point =
                                 arrow.points[i]
 
                             lineTo(
-                                pt.x * cellW + offsetX,
-                                pt.y * cellH + offsetY
+                                point.x.toFloat() * cellW + offsetX,
+                                point.y.toFloat() * cellH + offsetY
                             )
                         }
                     }
@@ -265,18 +278,18 @@ fun PuzzleBoard(
                     )
                 }
 
-                // -----------------------------
+                // --------------------------------
                 // ARROW HEAD
-                // -----------------------------
+                // --------------------------------
 
                 val head =
                     arrow.points.last()
 
                 val hx =
-                    head.x * cellW + offsetX
+                    head.x.toFloat() * cellW + offsetX
 
                 val hy =
-                    head.y * cellH + offsetY
+                    head.y.toFloat() * cellH + offsetY
 
                 val headLen =
                     14.dp.toPx()
@@ -290,6 +303,7 @@ fun PuzzleBoard(
                         when (arrow.headDirection) {
 
                             Direction.UP -> {
+
                                 moveTo(
                                     hx,
                                     hy - 2.dp.toPx()
@@ -307,6 +321,7 @@ fun PuzzleBoard(
                             }
 
                             Direction.DOWN -> {
+
                                 moveTo(
                                     hx,
                                     hy + 2.dp.toPx()
@@ -324,6 +339,7 @@ fun PuzzleBoard(
                             }
 
                             Direction.LEFT -> {
+
                                 moveTo(
                                     hx - 2.dp.toPx(),
                                     hy
@@ -341,6 +357,7 @@ fun PuzzleBoard(
                             }
 
                             Direction.RIGHT -> {
+
                                 moveTo(
                                     hx + 2.dp.toPx(),
                                     hy
@@ -368,54 +385,4 @@ fun PuzzleBoard(
             }
         }
     }
-}
-
-/**
- * Returns the shortest distance between a point
- * and a line segment.
- *
- * This makes straight + L-shaped arrows
- * properly touchable.
- */
-private fun distanceToSegment(
-    px: Float,
-    py: Float,
-    x1: Float,
-    y1: Float,
-    x2: Float,
-    y2: Float
-): Float {
-
-    val dx = x2 - x1
-    val dy = y2 - y1
-
-    if (dx == 0f && dy == 0f) {
-        return sqrt(
-            (px - x1) * (px - x1) +
-                    (py - y1) * (py - y1)
-        )
-    }
-
-    val lengthSquared =
-        dx * dx + dy * dy
-
-    var t =
-        ((px - x1) * dx +
-                (py - y1) * dy) /
-                lengthSquared
-
-    t = t.coerceIn(0f, 1f)
-
-    val nearestX =
-        x1 + t * dx
-
-    val nearestY =
-        y1 + t * dy
-
-    return sqrt(
-        (px - nearestX) *
-                (px - nearestX) +
-                (py - nearestY) *
-                (py - nearestY)
-    )
 }
