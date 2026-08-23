@@ -23,6 +23,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.arrowescape.game.model.Arrow
 import com.arrowescape.game.model.Direction
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 @Composable
@@ -41,12 +42,9 @@ fun PuzzleBoard(
     val blockedColor = Color(0xFFEF4444)
     val dotColor = Color(0xFFE2E8F0)
 
-    /*
-     * Animation progress.
-     * 0f = arrow is on the board.
-     * 1f = arrow has completely escaped outside the board.
-     */
-    val escapeProgress = remember { Animatable(0f) }
+    val escapeProgress = remember {
+        Animatable(0f)
+    }
 
     val escapingArrow = arrows.firstOrNull {
         escapingArrowIds.contains(it.id)
@@ -56,11 +54,10 @@ fun PuzzleBoard(
         if (escapingArrow != null) {
             escapeProgress.snapTo(0f)
 
-            // Smoothly move the arrow outside the board.
             escapeProgress.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(
-                    durationMillis = 500
+                    durationMillis = 550
                 )
             )
         } else {
@@ -90,29 +87,46 @@ fun PuzzleBoard(
                         val cellH =
                             size.height / (gridHeight - 1).coerceAtLeast(1)
 
-                        val hit = arrows.findLast { arrow ->
+                        val hitRadius =
+                            minOf(cellW, cellH) * 0.75f
 
-                            // Don't allow tapping an arrow that is
-                            // currently escaping.
-                            if (escapingArrowIds.contains(arrow.id)) {
-                                false
-                            } else {
-                                arrow.points.any { pt ->
+                        val hit = arrows
+                            .asReversed()
+                            .firstOrNull { arrow ->
 
-                                    val px = pt.x * cellW
-                                    val py = pt.y * cellH
+                                if (escapingArrowIds.contains(arrow.id)) {
+                                    false
+                                } else {
 
-                                    val dist = sqrt(
-                                        (tapOffset.x - px) *
-                                                (tapOffset.x - px) +
-                                                (tapOffset.y - py) *
-                                                (tapOffset.y - py)
-                                    )
+                                    // Check every segment of the arrow.
+                                    arrow.points.zipWithNext().any { segment ->
 
-                                    dist <= cellW * 0.65f
+                                        val p1 = segment.first
+                                        val p2 = segment.second
+
+                                        val x1 =
+                                            p1.x * cellW
+
+                                        val y1 =
+                                            p1.y * cellH
+
+                                        val x2 =
+                                            p2.x * cellW
+
+                                        val y2 =
+                                            p2.y * cellH
+
+                                        distanceToSegment(
+                                            tapOffset.x,
+                                            tapOffset.y,
+                                            x1,
+                                            y1,
+                                            x2,
+                                            y2
+                                        ) <= hitRadius
+                                    }
                                 }
                             }
-                        }
 
                         hit?.let {
                             onArrowTapped(it)
@@ -133,6 +147,7 @@ fun PuzzleBoard(
 
             for (gx in 0 until gridWidth) {
                 for (gy in 0 until gridHeight) {
+
                     drawCircle(
                         color = dotColor,
                         radius = 3.dp.toPx(),
@@ -172,9 +187,9 @@ fun PuzzleBoard(
                         5.5.dp.toPx()
                     }
 
-                // --------------------------------
-                // ESCAPE OFFSET
-                // --------------------------------
+                // -----------------------------
+                // ESCAPE MOVEMENT
+                // -----------------------------
 
                 var offsetX = 0f
                 var offsetY = 0f
@@ -182,10 +197,10 @@ fun PuzzleBoard(
                 if (isEscaping) {
 
                     val distanceX =
-                        size.width + cellW * 2f
+                        size.width + cellW * 3f
 
                     val distanceY =
-                        size.height + cellH * 2f
+                        size.height + cellH * 3f
 
                     when (arrow.headDirection) {
 
@@ -211,9 +226,9 @@ fun PuzzleBoard(
                     }
                 }
 
-                // --------------------------------
-                // DRAW ARROW PATH
-                // --------------------------------
+                // -----------------------------
+                // ARROW PATH
+                // -----------------------------
 
                 if (arrow.points.size >= 2) {
 
@@ -250,9 +265,9 @@ fun PuzzleBoard(
                     )
                 }
 
-                // --------------------------------
+                // -----------------------------
                 // ARROW HEAD
-                // --------------------------------
+                // -----------------------------
 
                 val head =
                     arrow.points.last()
@@ -353,4 +368,54 @@ fun PuzzleBoard(
             }
         }
     }
+}
+
+/**
+ * Returns the shortest distance between a point
+ * and a line segment.
+ *
+ * This makes straight + L-shaped arrows
+ * properly touchable.
+ */
+private fun distanceToSegment(
+    px: Float,
+    py: Float,
+    x1: Float,
+    y1: Float,
+    x2: Float,
+    y2: Float
+): Float {
+
+    val dx = x2 - x1
+    val dy = y2 - y1
+
+    if (dx == 0f && dy == 0f) {
+        return sqrt(
+            (px - x1) * (px - x1) +
+                    (py - y1) * (py - y1)
+        )
+    }
+
+    val lengthSquared =
+        dx * dx + dy * dy
+
+    var t =
+        ((px - x1) * dx +
+                (py - y1) * dy) /
+                lengthSquared
+
+    t = t.coerceIn(0f, 1f)
+
+    val nearestX =
+        x1 + t * dx
+
+    val nearestY =
+        y1 + t * dy
+
+    return sqrt(
+        (px - nearestX) *
+                (px - nearestX) +
+                (py - nearestY) *
+                (py - nearestY)
+    )
 }
