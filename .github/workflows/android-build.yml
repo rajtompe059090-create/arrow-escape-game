@@ -2,9 +2,9 @@ name: Android Build & Package APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   workflow_dispatch:
 
 jobs:
@@ -18,24 +18,40 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
+          java-version: "17"
+          distribution: "temurin"
 
-      - name: Grant execute permission for gradlew
+      - name: Check Project Structure
+        run: |
+          echo "===== PROJECT STRUCTURE ====="
+          find . -maxdepth 3 -type f | sort | head -300
+
+      - name: Find Gradle Wrapper
+        run: |
+          echo "===== SEARCHING FOR GRADLEW ====="
+          find . -name gradlew -type f -print
+
+      - name: Grant execute permission
         run: |
           if [ -f "./android/gradlew" ]; then
             chmod +x ./android/gradlew
           elif [ -f "./gradlew" ]; then
             chmod +x ./gradlew
+          else
+            echo "ERROR: gradlew file not found!"
+            exit 1
           fi
 
       - name: Build Debug APK
         run: |
-          if [ -d "./android" ]; then
-            cd android && ./gradlew assembleDebug --stacktrace
-          else
+          if [ -f "./android/gradlew" ]; then
+            cd android
             ./gradlew assembleDebug --stacktrace
+          elif [ -f "./gradlew" ]; then
+            ./gradlew assembleDebug --stacktrace
+          else
+            echo "ERROR: gradlew file not found!"
+            exit 1
           fi
 
       - name: Upload Debug APK
@@ -45,3 +61,4 @@ jobs:
           path: |
             android/app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
