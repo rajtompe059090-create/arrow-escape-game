@@ -106,9 +106,9 @@ dependencies {
         "androidx.datastore:datastore-preferences:1.1.1"
     )
 
-    // Google AdMob / Google Mobile Ads SDK
+    // Google Mobile Ads SDK
     implementation(
-        "com.google.android.gms:play-services-ads:25.4.0"
+        "com.google.android.gms:play-services-ads:25.3.0"
     )
 
     debugImplementation(
