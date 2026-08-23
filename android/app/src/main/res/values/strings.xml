@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Arrow Escape</string>
+    <string name="tagline">Tap • Solve • Escape</string>
+    <string name="continue_game">Continue</string>
+    <string name="select_levels">Select Levels</string>
+    <string name="reward_wallet">Reward Wallet</string>
+    <string name="player_profile">Player Profile</string>
+    <string name="level_completed">Level Completed!</string>
+    <string name="game_over">Out of Lives!</string>
+    <string name="retry">Try Again</string>
+    <string name="next_level">Next Level</string>
+    <string name="hint">Hint</string>
+</resources>
