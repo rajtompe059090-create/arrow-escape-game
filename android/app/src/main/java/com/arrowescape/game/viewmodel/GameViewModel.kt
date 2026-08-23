@@ -57,6 +57,7 @@ class GameViewModel(
 
     fun loadLevel(levelId: Int) {
         val level = LevelRepository.getLevel(levelId) ?: return
+
         _uiState.update {
             it.copy(
                 currentLevel = level,
@@ -75,7 +76,14 @@ class GameViewModel(
     fun onArrowTapped(arrow: Arrow) {
         val state = _uiState.value
         val level = state.currentLevel ?: return
-        if (state.lives <= 0 || state.isLevelCompleted || state.escapingArrowIds.contains(arrow.id)) return
+
+        if (
+            state.lives <= 0 ||
+            state.isLevelCompleted ||
+            state.escapingArrowIds.contains(arrow.id)
+        ) {
+            return
+        }
 
         val check = PuzzleEngine.isArrowPathClear(
             arrow = arrow,
@@ -85,34 +93,60 @@ class GameViewModel(
         )
 
         if (check.isClear) {
+
+            // Start escape animation
             _uiState.update {
                 it.copy(
                     escapingArrowIds = it.escapingArrowIds + arrow.id,
                     movesCount = it.movesCount + 1,
-                    hintedArrowId = if (it.hintedArrowId == arrow.id) null else it.hintedArrowId
+                    hintedArrowId =
+                        if (it.hintedArrowId == arrow.id) {
+                            null
+                        } else {
+                            it.hintedArrowId
+                        }
                 )
             }
 
             viewModelScope.launch {
-                delay(380)
-                val updatedArrows = _uiState.value.remainingArrows.filter { it.id != arrow.id }
-                val isCompleted = updatedArrows.isEmpty()
+
+                // Give the Compose animation enough time
+                // to move the arrow completely outside.
+                delay(550)
+
+                val updatedArrows =
+                    _uiState.value.remainingArrows.filter {
+                        it.id != arrow.id
+                    }
+
+                val isCompleted =
+                    updatedArrows.isEmpty()
 
                 _uiState.update {
                     it.copy(
                         remainingArrows = updatedArrows,
-                        escapingArrowIds = it.escapingArrowIds - arrow.id,
+                        escapingArrowIds =
+                            it.escapingArrowIds - arrow.id,
                         isLevelCompleted = isCompleted
                     )
                 }
 
                 if (isCompleted) {
-                    val reward = PuzzleEngine.calculateRewardRupees(level.id)
-                    prefsRepo.recordLevelCompleted(level.id, reward)
+                    val reward =
+                        PuzzleEngine.calculateRewardRupees(level.id)
+
+                    prefsRepo.recordLevelCompleted(
+                        level.id,
+                        reward
+                    )
                 }
             }
+
         } else {
+
+            // Arrow is blocked
             val newLives = state.lives - 1
+
             _uiState.update {
                 it.copy(
                     blockedArrowId = arrow.id,
@@ -122,7 +156,9 @@ class GameViewModel(
             }
 
             viewModelScope.launch {
+
                 delay(400)
+
                 _uiState.update {
                     it.copy(
                         blockedArrowId = null,
@@ -136,26 +172,58 @@ class GameViewModel(
     fun useHint() {
         val state = _uiState.value
         val level = state.currentLevel ?: return
-        if (state.hintsRemaining <= 0 || state.lives <= 0) return
 
-        val free = PuzzleEngine.findFreeArrow(state.remainingArrows, level.gridWidth, level.gridHeight)
+        if (
+            state.hintsRemaining <= 0 ||
+            state.lives <= 0
+        ) {
+            return
+        }
+
+        val free = PuzzleEngine.findFreeArrow(
+            state.remainingArrows,
+            level.gridWidth,
+            level.gridHeight
+        )
+
         if (free != null) {
-            _uiState.update { it.copy(hintedArrowId = free.id) }
+
+            _uiState.update {
+                it.copy(
+                    hintedArrowId = free.id
+                )
+            }
+
             viewModelScope.launch {
+
                 prefsRepo.decrementHint()
+
                 delay(4000)
-                _uiState.update { if (it.hintedArrowId == free.id) it.copy(hintedArrowId = null) else it }
+
+                _uiState.update {
+                    if (it.hintedArrowId == free.id) {
+                        it.copy(
+                            hintedArrowId = null
+                        )
+                    } else {
+                        it
+                    }
+                }
             }
         }
     }
 
     fun restartCurrentLevel() {
-        _uiState.value.currentLevel?.let { loadLevel(it.id) }
+        _uiState.value.currentLevel?.let {
+            loadLevel(it.id)
+        }
     }
 
     fun toggleSound() {
         viewModelScope.launch {
-            prefsRepo.setSoundEnabled(!_uiState.value.soundEnabled)
+            prefsRepo.setSoundEnabled(
+                !_uiState.value.soundEnabled
+            )
         }
     }
 
