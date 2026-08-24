@@ -23,14 +23,10 @@ AppScreen.GAME -> {
         },
 
         onNextLevel = {
-            val currentLevelId =
-                uiState.currentLevel?.id ?: 1
+            val currentId = uiState.currentLevel?.id ?: 1
+            val nextId = currentId + 1
 
-            val nextLevelId =
-                currentLevelId + 1
-
-            viewModel.loadLevel(nextLevelId)
-
+            viewModel.loadLevel(nextId)
             currentScreen = AppScreen.GAME
         }
     )
