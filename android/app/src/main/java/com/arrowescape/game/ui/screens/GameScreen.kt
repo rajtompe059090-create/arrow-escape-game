@@ -1,5 +1,6 @@
 package com.arrowescape.game.ui.screens
 
+import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,9 +37,45 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
 import com.arrowescape.game.model.Arrow
 import com.arrowescape.game.ui.components.PuzzleBoard
 import com.arrowescape.game.viewmodel.GameUiState
+
+private const val TEST_BANNER_AD_UNIT_ID =
+    "ca-app-pub-3940256099942544/6300978111"
+
+@Composable
+private fun TestBannerAd(
+    modifier: Modifier = Modifier
+) {
+    AndroidView(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(50.dp),
+        factory = { context ->
+
+            AdView(context).apply {
+
+                setAdSize(AdSize.BANNER)
+
+                adUnitId = TEST_BANNER_AD_UNIT_ID
+
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+
+                loadAd(
+                    AdRequest.Builder().build()
+                )
+            }
+        }
+    )
+}
 
 @Composable
 fun GameScreen(
@@ -64,15 +101,16 @@ fun GameScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // --------------------------------
+            // ==============================
             // TOP BAR
-            // --------------------------------
+            // ==============================
 
             Surface(
                 color = Color.White,
                 shadowElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -87,6 +125,7 @@ fun GameScreen(
                     IconButton(
                         onClick = onBack
                     ) {
+
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
@@ -96,6 +135,7 @@ fun GameScreen(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+
                         Text(
                             text = level.name,
                             style = MaterialTheme.typography.labelSmall,
@@ -113,6 +153,7 @@ fun GameScreen(
                         shape = RoundedCornerShape(12.dp),
                         color = Color(0xFFF1F5F9)
                     ) {
+
                         Text(
                             text = "${uiState.remainingArrows.size} left",
                             modifier = Modifier.padding(
@@ -127,9 +168,9 @@ fun GameScreen(
                 }
             }
 
-            // --------------------------------
+            // ==============================
             // STATS
-            // --------------------------------
+            // ==============================
 
             Row(
                 modifier = Modifier
@@ -146,6 +187,7 @@ fun GameScreen(
                     shape = RoundedCornerShape(12.dp),
                     color = Color(0xFFE0F2FE)
                 ) {
+
                     Text(
                         text = level.difficulty.name,
                         modifier = Modifier.padding(
@@ -161,10 +203,10 @@ fun GameScreen(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+
                     for (i in 1..3) {
 
-                        val isAlive =
-                            i <= uiState.lives
+                        val isAlive = i <= uiState.lives
 
                         Icon(
                             imageVector = Icons.Default.Favorite,
@@ -180,9 +222,9 @@ fun GameScreen(
                 }
             }
 
-            // --------------------------------
+            // ==============================
             // PUZZLE BOARD
-            // --------------------------------
+            // ==============================
 
             Box(
                 modifier = Modifier
@@ -202,14 +244,28 @@ fun GameScreen(
                 )
             }
 
-            // --------------------------------
+            // ==============================
+            // TEST BANNER AD
+            // ==============================
+
+            TestBannerAd(
+                modifier = Modifier.padding(
+                    horizontal = 8.dp,
+                    vertical = 4.dp
+                )
+            )
+
+            // ==============================
             // BOTTOM CONTROLS
-            // --------------------------------
+            // ==============================
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(
+                        horizontal = 24.dp,
+                        vertical = 12.dp
+                    ),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -218,9 +274,11 @@ fun GameScreen(
 
                 BadgedBox(
                     badge = {
+
                         Badge(
                             containerColor = Color(0xFF0284C7)
                         ) {
+
                             Text(
                                 text = "${uiState.hintsRemaining}"
                             )
@@ -354,7 +412,8 @@ fun GameScreen(
                             )
 
                             Text(
-                                text = "Level ${level.id} cleared successfully!",
+                                text =
+                                    "Level ${level.id} cleared successfully!",
                                 fontSize = 15.sp,
                                 color = Color(0xFF64748B)
                             )
@@ -375,7 +434,8 @@ fun GameScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(18.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                    horizontalAlignment =
+                                        Alignment.CenterHorizontally
                                 ) {
 
                                     Text(
@@ -467,15 +527,22 @@ fun GameScreen(
     }
 }
 
-/**
- * Same reward system used by the game.
- */
+// ========================================
+// REWARD SYSTEM
+// ========================================
+
 private fun calculateReward(levelId: Int): Int {
+
     return when {
+
         levelId <= 50 -> 2
+
         levelId <= 100 -> 3
+
         levelId <= 150 -> 5
+
         levelId <= 200 -> 10
+
         else -> 15
     }
 }
