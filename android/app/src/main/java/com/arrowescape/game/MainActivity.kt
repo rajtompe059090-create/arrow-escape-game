@@ -6,11 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 
 class MainActivity : ComponentActivity() {
 
@@ -22,6 +20,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val uiState = viewModel.uiState
+
             var currentScreen by remember {
                 mutableStateOf(AppScreen.LEVEL_SELECT)
             }
@@ -31,12 +30,10 @@ class MainActivity : ComponentActivity() {
                 AppScreen.LEVEL_SELECT -> {
                     LevelSelectScreen(
                         uiState = uiState,
-
                         onLevelSelected = { levelId ->
                             viewModel.loadLevel(levelId)
                             currentScreen = AppScreen.GAME
                         },
-
                         onBack = {
                             finish()
                         }
@@ -71,10 +68,7 @@ class MainActivity : ComponentActivity() {
                             val currentLevelId =
                                 uiState.currentLevel?.id ?: 1
 
-                            val nextLevelId =
-                                currentLevelId + 1
-
-                            viewModel.loadLevel(nextLevelId)
+                            viewModel.loadLevel(currentLevelId + 1)
                             currentScreen = AppScreen.GAME
                         }
                     )
