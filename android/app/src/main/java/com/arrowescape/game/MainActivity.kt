@@ -9,70 +9,99 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.arrowescape.game.data.UserPreferencesRepository
+import com.arrowescape.game.ui.screens.GameScreen
+import com.arrowescape.game.ui.screens.LevelSelectScreen
+import com.arrowescape.game.viewmodel.GameViewModel
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: GameViewModel by viewModels()
+    private val viewModel: GameViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(
+                modelClass: Class<T>
+            ): T {
+                if (modelClass.isAssignableFrom(GameViewModel::class.java)) {
+                    @Suppress("UNCHECKED_CAST")
+                    return GameViewModel(
+                        UserPreferencesRepository(applicationContext)
+                    ) as T
+                }
+
+                throw IllegalArgumentException(
+                    "Unknown ViewModel class: ${modelClass.name}"
+                )
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        setContent {
-            val uiState = viewModel.uiState
+        // Start with Level 1
+        viewModel.loadLevel(1)
 
-            var currentScreen by remember {
-                mutableStateOf(AppScreen.LEVEL_SELECT)
+        setContent {
+
+            val uiState by viewModel.uiState.collectAsState()
+
+            var showingGame by remember {
+                mutableStateOf(false)
             }
 
-            when (currentScreen) {
+            if (showingGame) {
 
-                AppScreen.LEVEL_SELECT -> {
-                    LevelSelectScreen(
-                        uiState = uiState,
-                        onLevelSelected = { levelId ->
-                            viewModel.loadLevel(levelId)
-                            currentScreen = AppScreen.GAME
-                        },
-                        onBack = {
-                            finish()
-                        }
-                    )
-                }
+                GameScreen(
+                    uiState = uiState,
 
-                AppScreen.GAME -> {
-                    GameScreen(
-                        uiState = uiState,
+                    onArrowTapped = { arrow ->
+                        viewModel.onArrowTapped(arrow)
+                    },
 
-                        onArrowTapped = { arrow ->
-                            viewModel.onArrowTapped(arrow)
-                        },
+                    onUseHint = {
+                        viewModel.useHint()
+                    },
 
-                        onUseHint = {
-                            viewModel.useHint()
-                        },
+                    onRestartLevel = {
+                        viewModel.restartCurrentLevel()
+                    },
 
-                        onRestartLevel = {
-                            viewModel.restartCurrentLevel()
-                        },
+                    onOpenLevels = {
+                        showingGame = false
+                    },
 
-                        onOpenLevels = {
-                            currentScreen = AppScreen.LEVEL_SELECT
-                        },
+                    onBack = {
+                        showingGame = false
+                    },
 
-                        onBack = {
-                            currentScreen = AppScreen.LEVEL_SELECT
-                        },
+                    onNextLevel = {
+                        val currentLevel =
+                            uiState.currentLevel?.id ?: 1
 
-                        onNextLevel = {
-                            val currentLevelId =
-                                uiState.currentLevel?.id ?: 1
+                        viewModel.loadLevel(
+                            currentLevel + 1
+                        )
+                    }
+                )
 
-                            viewModel.loadLevel(currentLevelId + 1)
-                            currentScreen = AppScreen.GAME
-                        }
-                    )
-                }
+            } else {
+
+                LevelSelectScreen(
+                    uiState = uiState,
+
+                    onSelectLevel = { levelId ->
+                        viewModel.loadLevel(levelId)
+                        showingGame = true
+                    },
+
+                    onBack = {
+                        finish()
+                    }
+                )
             }
         }
     }
