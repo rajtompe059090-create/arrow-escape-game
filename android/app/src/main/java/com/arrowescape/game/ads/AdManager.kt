@@ -37,15 +37,17 @@ object AdManager {
         "ca-app-pub-6146868530948467~3047670393"
 
     // =========================================================
-    // GOOGLE TEST BANNER
-    // ONLY BANNER IS TEST MODE
+    // GOOGLE OFFICIAL TEST AD UNIT IDS
     // =========================================================
 
     private const val TEST_BANNER_ID =
         "ca-app-pub-3940256099942544/6300978111"
 
+    private const val TEST_INTERSTITIAL_ID =
+        "ca-app-pub-3940256099942544/1033173712"
+
     // =========================================================
-    // YOUR REAL IDS
+    // REAL AD UNIT IDS
     // =========================================================
 
     const val BANNER_ID =
@@ -67,23 +69,23 @@ object AdManager {
         "ca-app-pub-6146868530948467/2935989754"
 
     // =========================================================
-    // BANNER TEST SWITCH
-    // =========================================================
+    // ACTIVE IDS
     //
-    // TRUE = Google Test Banner
-    // FALSE = Your real Banner ID
-    //
-    // Abhi TRUE rakha hai.
+    // Banner + Interstitial = GOOGLE TEST
+    // Rewarded + App Open = REAL
     // =========================================================
-
-    private const val USE_TEST_BANNER = true
 
     private val activeBannerId: String
-        get() = if (USE_TEST_BANNER) {
-            TEST_BANNER_ID
-        } else {
-            BANNER_ID
-        }
+        get() = TEST_BANNER_ID
+
+    private val activeInterstitialId: String
+        get() = TEST_INTERSTITIAL_ID
+
+    private val activeRewardedId: String
+        get() = REWARDED_ID
+
+    private val activeAppOpenId: String
+        get() = APP_OPEN_ID
 
     // =========================================================
     // STATE
@@ -111,7 +113,7 @@ object AdManager {
     private var isShowingAppOpenAd = false
 
     // =========================================================
-    // INITIALIZE ADMOB
+    // INITIALIZE
     // =========================================================
 
     fun initialize(context: Context) {
@@ -159,16 +161,19 @@ object AdManager {
 
     // =========================================================
     // INTERSTITIAL
+    // GOOGLE TEST
     // LEVEL COMPLETE
     // =========================================================
 
     fun loadInterstitial(context: Context) {
 
         if (interstitialAd != null) {
+            Log.d(TAG, "INTERSTITIAL_ALREADY_LOADED")
             return
         }
 
         if (isInterstitialLoading) {
+            Log.d(TAG, "INTERSTITIAL_ALREADY_LOADING")
             return
         }
 
@@ -176,12 +181,12 @@ object AdManager {
 
         Log.d(
             TAG,
-            "INTERSTITIAL_LOADING: $INTERSTITIAL_ID"
+            "INTERSTITIAL_TEST_LOADING: $activeInterstitialId"
         )
 
         InterstitialAd.load(
             context,
-            INTERSTITIAL_ID,
+            activeInterstitialId,
             AdRequest.Builder().build(),
 
             object : InterstitialAdLoadCallback() {
@@ -195,7 +200,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "INTERSTITIAL_LOADED"
+                        "INTERSTITIAL_TEST_LOADED"
                     )
                 }
 
@@ -208,10 +213,11 @@ object AdManager {
 
                     Log.e(
                         TAG,
-                        "INTERSTITIAL_LOAD_FAILED: " +
+                        "INTERSTITIAL_TEST_LOAD_FAILED: " +
                                 "code=${error.code}, " +
                                 "message=${error.message}, " +
-                                "domain=${error.domain}"
+                                "domain=${error.domain}, " +
+                                "responseInfo=${error.responseInfo}"
                     )
                 }
             }
@@ -238,7 +244,7 @@ object AdManager {
 
             Log.w(
                 TAG,
-                "INTERSTITIAL_NOT_READY"
+                "INTERSTITIAL_TEST_NOT_READY"
             )
 
             loadInterstitial(
@@ -274,7 +280,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "INTERSTITIAL_SHOWED"
+                        "INTERSTITIAL_TEST_SHOWED"
                     )
                 }
 
@@ -282,7 +288,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "INTERSTITIAL_DISMISSED"
+                        "INTERSTITIAL_TEST_DISMISSED"
                     )
 
                     interstitialAd = null
@@ -300,7 +306,9 @@ object AdManager {
 
                     Log.e(
                         TAG,
-                        "INTERSTITIAL_SHOW_FAILED: ${error.message}"
+                        "INTERSTITIAL_TEST_SHOW_FAILED: " +
+                                "code=${error.code}, " +
+                                "message=${error.message}"
                     )
 
                     interstitialAd = null
@@ -323,7 +331,7 @@ object AdManager {
 
                 Log.e(
                     TAG,
-                    "INTERSTITIAL_SHOW_EXCEPTION: ${e.message}",
+                    "INTERSTITIAL_TEST_SHOW_EXCEPTION: ${e.message}",
                     e
                 )
 
@@ -357,12 +365,12 @@ object AdManager {
 
         Log.d(
             TAG,
-            "REWARDED_LOADING: $REWARDED_ID"
+            "REWARDED_REAL_LOADING: $activeRewardedId"
         )
 
         RewardedAd.load(
             context,
-            REWARDED_ID,
+            activeRewardedId,
             AdRequest.Builder().build(),
 
             object : RewardedAdLoadCallback() {
@@ -376,7 +384,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "REWARDED_LOADED"
+                        "REWARDED_REAL_LOADED"
                     )
                 }
 
@@ -389,7 +397,7 @@ object AdManager {
 
                     Log.e(
                         TAG,
-                        "REWARDED_LOAD_FAILED: " +
+                        "REWARDED_REAL_LOAD_FAILED: " +
                                 "code=${error.code}, " +
                                 "message=${error.message}"
                     )
@@ -417,6 +425,11 @@ object AdManager {
         val ad = rewardedAd
 
         if (ad == null) {
+
+            Log.w(
+                TAG,
+                "REWARDED_REAL_NOT_READY"
+            )
 
             loadRewarded(
                 activity.applicationContext
@@ -454,7 +467,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "REWARDED_SHOWED"
+                        "REWARDED_REAL_SHOWED"
                     )
                 }
 
@@ -462,7 +475,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "REWARDED_DISMISSED"
+                        "REWARDED_REAL_DISMISSED"
                     )
 
                     rewardedAd = null
@@ -480,7 +493,7 @@ object AdManager {
 
                     Log.e(
                         TAG,
-                        "REWARDED_SHOW_FAILED: ${error.message}"
+                        "REWARDED_REAL_SHOW_FAILED: ${error.message}"
                     )
 
                     rewardedAd = null
@@ -508,7 +521,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "REWARDED_USER_EARNED"
+                        "REWARDED_REAL_USER_EARNED"
                     )
 
                     if (
@@ -528,7 +541,7 @@ object AdManager {
 
                 Log.e(
                     TAG,
-                    "REWARDED_SHOW_EXCEPTION: ${e.message}",
+                    "REWARDED_REAL_SHOW_EXCEPTION: ${e.message}",
                     e
                 )
 
@@ -563,12 +576,12 @@ object AdManager {
 
         Log.d(
             TAG,
-            "APP_OPEN_LOADING: $APP_OPEN_ID"
+            "APP_OPEN_REAL_LOADING: $activeAppOpenId"
         )
 
         AppOpenAd.load(
             context,
-            APP_OPEN_ID,
+            activeAppOpenId,
             AdRequest.Builder().build(),
 
             object : AppOpenAd.AppOpenAdLoadCallback() {
@@ -583,7 +596,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "APP_OPEN_LOADED"
+                        "APP_OPEN_REAL_LOADED"
                     )
                 }
 
@@ -596,7 +609,7 @@ object AdManager {
 
                     Log.e(
                         TAG,
-                        "APP_OPEN_LOAD_FAILED: " +
+                        "APP_OPEN_REAL_LOAD_FAILED: " +
                                 "code=${error.code}, " +
                                 "message=${error.message}"
                     )
@@ -651,7 +664,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "APP_OPEN_SHOWED"
+                        "APP_OPEN_REAL_SHOWED"
                     )
                 }
 
@@ -662,7 +675,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "APP_OPEN_DISMISSED"
+                        "APP_OPEN_REAL_DISMISSED"
                     )
 
                     loadAppOpenAd(
@@ -678,7 +691,7 @@ object AdManager {
 
                     Log.e(
                         TAG,
-                        "APP_OPEN_SHOW_FAILED: ${error.message}"
+                        "APP_OPEN_REAL_SHOW_FAILED: ${error.message}"
                     )
 
                     appOpenAd = null
@@ -702,7 +715,7 @@ object AdManager {
 
                 Log.e(
                     TAG,
-                    "APP_OPEN_SHOW_EXCEPTION: ${e.message}",
+                    "APP_OPEN_REAL_SHOW_EXCEPTION: ${e.message}",
                     e
                 )
 
@@ -762,7 +775,7 @@ object AdManager {
 
     // =========================================================
     // TOP BANNER
-    // GOOGLE TEST AD
+    // GOOGLE TEST
     // =========================================================
 
     @Composable
@@ -779,7 +792,7 @@ object AdManager {
 
                 Log.d(
                     TAG,
-                    "TOP_BANNER_CREATED"
+                    "TOP_BANNER_TEST_CREATED"
                 )
 
                 AdView(context).apply {
@@ -804,7 +817,7 @@ object AdManager {
 
                                 Log.d(
                                     TAG,
-                                    "TOP_BANNER_LOADED: TEST=$USE_TEST_BANNER"
+                                    "TOP_BANNER_TEST_LOADED"
                                 )
                             }
 
@@ -814,7 +827,7 @@ object AdManager {
 
                                 Log.e(
                                     TAG,
-                                    "TOP_BANNER_FAILED: " +
+                                    "TOP_BANNER_TEST_FAILED: " +
                                             "code=${error.code}, " +
                                             "message=${error.message}, " +
                                             "domain=${error.domain}, " +
@@ -825,7 +838,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "TOP_BANNER_LOADING: $activeBannerId"
+                        "TOP_BANNER_TEST_LOADING: $activeBannerId"
                     )
 
                     loadAd(
@@ -838,7 +851,7 @@ object AdManager {
 
     // =========================================================
     // BOTTOM BANNER
-    // GOOGLE TEST AD
+    // GOOGLE TEST
     // =========================================================
 
     @Composable
@@ -855,7 +868,7 @@ object AdManager {
 
                 Log.d(
                     TAG,
-                    "BOTTOM_BANNER_CREATED"
+                    "BOTTOM_BANNER_TEST_CREATED"
                 )
 
                 AdView(context).apply {
@@ -880,7 +893,7 @@ object AdManager {
 
                                 Log.d(
                                     TAG,
-                                    "BOTTOM_BANNER_LOADED: TEST=$USE_TEST_BANNER"
+                                    "BOTTOM_BANNER_TEST_LOADED"
                                 )
                             }
 
@@ -890,7 +903,7 @@ object AdManager {
 
                                 Log.e(
                                     TAG,
-                                    "BOTTOM_BANNER_FAILED: " +
+                                    "BOTTOM_BANNER_TEST_FAILED: " +
                                             "code=${error.code}, " +
                                             "message=${error.message}, " +
                                             "domain=${error.domain}, " +
@@ -901,7 +914,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "BOTTOM_BANNER_LOADING: $activeBannerId"
+                        "BOTTOM_BANNER_TEST_LOADING: $activeBannerId"
                     )
 
                     loadAd(
