@@ -56,7 +56,7 @@ class UserPreferencesRepository(private val context: Context) {
             prefs[Keys.COMPLETED_LEVELS] = currentCompleted + levelId.toString()
 
             val currentUnlocked = prefs[Keys.UNLOCKED_LEVEL] ?: 1
-            prefs[Keys.UNLOCKED_LEVEL] = maxOf(currentUnlocked, minOf(20, levelId + 1))
+            prefs[Keys.UNLOCKED_LEVEL] = maxOf(currentUnlocked, levelId + 1)
 
             if (isFirstTime) {
                 val currentRupees = prefs[Keys.EARNED_RUPEES] ?: 0

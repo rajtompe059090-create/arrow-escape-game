@@ -4,15 +4,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
+        android:name=".ArrowEscapeApplication"
         android:allowBackup="true"
         android:label="Arrow Escape"
         android:supportsRtl="true"
         android:theme="@style/Theme.ArrowEscape">
 
-        <!-- Google AdMob TEST App ID -->
+        <!-- Google AdMob Application ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-6146868530948467~3047670393" />
 
         <activity
             android:name=".MainActivity"

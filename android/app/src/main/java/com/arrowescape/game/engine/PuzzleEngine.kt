@@ -69,6 +69,27 @@ object PuzzleEngine {
         }
     }
 
+    /**
+     * Algorithmically verifies that a level has at least one valid solution sequence to completion.
+     */
+    fun isLevelSolvable(
+        arrows: List<Arrow>,
+        gridWidth: Int,
+        gridHeight: Int
+    ): Boolean {
+        var remaining = arrows.toList()
+        val maxSteps = remaining.size + 5
+        var steps = 0
+
+        while (remaining.isNotEmpty() && steps < maxSteps) {
+            val free = findFreeArrow(remaining, gridWidth, gridHeight) ?: return false
+            remaining = remaining.filter { it.id != free.id }
+            steps++
+        }
+
+        return remaining.isEmpty()
+    }
+
     fun getAllOccupiedPoints(arrow: Arrow): List<GridPoint> {
         val pointsSet = LinkedHashSet<GridPoint>()
         for (i in 0 until arrow.points.size - 1) {

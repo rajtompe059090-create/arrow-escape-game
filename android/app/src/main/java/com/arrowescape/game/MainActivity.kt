@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.arrowescape.game.ads.AdManager
 import com.arrowescape.game.data.UserPreferencesRepository
 import com.arrowescape.game.ui.components.DailyRewardDialog
 import com.arrowescape.game.ui.components.RewardsDialog
@@ -73,6 +74,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Try showing App Open Ad on launch/resume
+        AdManager.showAppOpenAdIfAvailable(this)
     }
 }
 
