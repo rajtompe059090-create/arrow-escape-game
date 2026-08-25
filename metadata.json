@@ -1,6 +1,6 @@
 {
   "name": "Arrow Escape",
-  "description": "A polished tap-away arrow puzzle game with 20 levels, smooth escape mechanics, hint system, and complete Android Jetpack Compose source code.",
+  "description": "An original tap-away arrow puzzle game with dynamic procedural levels (Easy to Extreme), real ₹ earnings, wallet tracking, daily rewards, and full Android Jetpack Compose source code.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

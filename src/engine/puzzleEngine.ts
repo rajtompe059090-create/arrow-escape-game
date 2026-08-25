@@ -1,4 +1,4 @@
-import { Arrow, Direction, GridPoint, LevelData } from '../types/game';
+import { Arrow, Difficulty, Direction, GridPoint, LevelData } from '../types/game';
 
 /**
  * Checks if a point is occupied by any segment of any arrow in the list (excluding optional ignored arrow)
@@ -161,18 +161,21 @@ export function isLevelSolvable(level: LevelData): boolean {
   return remaining.length === 0;
 }
 
+import { calculateLevelReward } from '../services/earningsService';
+export { calculateLevelReward };
+
 /**
- * Calculates reward according to level range rule:
- * Levels 1-50: ₹2
- * Levels 51-100: ₹3
- * Levels 101-150: ₹5
- * Levels 151-200: ₹10
- * Levels 201+: ₹15
+ * Returns level difficulty tier based on continuous level ID:
+ * Levels 1–50 = Easy
+ * Levels 51–100 = Normal
+ * Levels 101–150 = Hard
+ * Levels 151–200 = Very Hard
+ * Levels 201+ = Extreme
  */
-export function calculateLevelReward(levelId: number): number {
-  if (levelId <= 50) return 2;
-  if (levelId <= 100) return 3;
-  if (levelId <= 150) return 5;
-  if (levelId <= 200) return 10;
-  return 15;
+export function getLevelDifficulty(levelId: number): Difficulty {
+  if (levelId <= 50) return 'Easy';
+  if (levelId <= 100) return 'Normal';
+  if (levelId <= 150) return 'Hard';
+  if (levelId <= 200) return 'Very Hard';
+  return 'Extreme';
 }
