@@ -24,12 +24,9 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -69,19 +66,36 @@ fun GameScreen(
     val context = LocalContext.current
     val activity = context as? Activity
 
-    var isShowingCompleteDialog by remember(level.id) { mutableStateOf(false) }
+    var isShowingCompleteDialog by remember(level.id) {
+        mutableStateOf(false)
+    }
 
-    // Level solved -> reward credited -> show interstitial -> dismiss/failure -> Level Complete UI
-    LaunchedEffect(uiState.isLevelCompleted, level.id) {
+    // =========================================================
+    // LEVEL COMPLETE -> INTERSTITIAL -> COMPLETE DIALOG
+    // =========================================================
+
+    LaunchedEffect(
+        uiState.isLevelCompleted,
+        level.id
+    ) {
         if (uiState.isLevelCompleted) {
+
+            isShowingCompleteDialog = false
+
             if (activity != null) {
-                AdManager.showInterstitial(activity) {
+
+                AdManager.showInterstitial(
+                    activity = activity
+                ) {
                     isShowingCompleteDialog = true
                 }
+
             } else {
+
                 isShowingCompleteDialog = true
             }
         } else {
+
             isShowingCompleteDialog = false
         }
     }
@@ -91,16 +105,22 @@ fun GameScreen(
             .fillMaxSize()
             .background(Color(0xFFF8FAFC))
     ) {
+
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // TOP SECTION: Banner + Top Bar + Stats
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // ==============================
-                // TOP ADMOB BANNER
-                // ==============================
+
+            // =================================================
+            // TOP SECTION
+            // =================================================
+
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                // TOP BANNER
                 AdManager.TopBannerView(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -108,160 +128,263 @@ fun GameScreen(
                         .padding(vertical = 2.dp)
                 )
 
-                // ==============================
-                // GAME TOP BAR
-                // ==============================
+                // TOP BAR
                 Surface(
                     color = Color.White,
                     shadowElevation = 2.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(
+                                horizontal = 12.dp,
+                                vertical = 8.dp
+                            ),
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween,
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = {
-                            SoundManager.playTap()
-                            onBack()
-                        }) {
+
+                        IconButton(
+                            onClick = {
+                                SoundManager.playTap()
+                                onBack()
+                            }
+                        ) {
+
                             Icon(
-                                imageVector = Icons.Default.ArrowBack,
+                                imageVector =
+                                    Icons.Default.ArrowBack,
                                 contentDescription = "Back",
                                 tint = Color(0xFF334155)
                             )
                         }
 
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment =
+                                Alignment.CenterHorizontally
+                        ) {
+
                             Text(
-                                text = "${level.difficulty.displayName} • Level ${level.id}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Black,
-                                color = Color(0xFF0F172A)
+                                text =
+                                    "${level.difficulty.displayName} • Level ${level.id}",
+                                style =
+                                    MaterialTheme.typography.titleMedium,
+                                fontWeight =
+                                    FontWeight.Black,
+                                color =
+                                    Color(0xFF0F172A)
                             )
+
                             Text(
-                                text = "Reward: ₹${level.rewardRupees}.00",
+                                text =
+                                    "Reward: ₹${level.rewardRupees}.00",
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF16A34A)
+                                fontWeight =
+                                    FontWeight.Bold,
+                                color =
+                                    Color(0xFF16A34A)
                             )
                         }
 
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFF1F5F9)
+                            shape =
+                                RoundedCornerShape(12.dp),
+                            color =
+                                Color(0xFFF1F5F9)
                         ) {
+
                             Text(
-                                text = "${uiState.remainingArrows.size} left",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                text =
+                                    "${uiState.remainingArrows.size} left",
+                                modifier =
+                                    Modifier.padding(
+                                        horizontal = 10.dp,
+                                        vertical = 6.dp
+                                    ),
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF334155)
+                                fontWeight =
+                                    FontWeight.Bold,
+                                color =
+                                    Color(0xFF334155)
                             )
                         }
                     }
                 }
 
-                // ==============================
-                // STATS BAR (Lives & Moves)
-                // ==============================
+                // STATS
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(
+                            horizontal = 20.dp,
+                            vertical = 8.dp
+                        ),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
+
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFEFF6FF)
+                        shape =
+                            RoundedCornerShape(12.dp),
+                        color =
+                            Color(0xFFEFF6FF)
                     ) {
+
                         Text(
-                            text = "Moves: ${uiState.movesCount}",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            text =
+                                "Moves: ${uiState.movesCount}",
+                            modifier =
+                                Modifier.padding(
+                                    horizontal = 10.dp,
+                                    vertical = 4.dp
+                                ),
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2563EB)
+                            fontWeight =
+                                FontWeight.Bold,
+                            color =
+                                Color(0xFF2563EB)
                         )
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        horizontalArrangement =
+                            Arrangement.spacedBy(6.dp)
+                    ) {
+
                         for (i in 1..3) {
-                            val isAlive = i <= uiState.lives
+
+                            val isAlive =
+                                i <= uiState.lives
+
                             Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = "Heart $i",
-                                tint = if (isAlive) Color(0xFFEF4444) else Color(0xFFCBD5E1),
-                                modifier = Modifier.size(22.dp)
+                                imageVector =
+                                    Icons.Default.Favorite,
+                                contentDescription =
+                                    "Heart $i",
+                                tint =
+                                    if (isAlive)
+                                        Color(0xFFEF4444)
+                                    else
+                                        Color(0xFFCBD5E1),
+                                modifier =
+                                    Modifier.size(22.dp)
                             )
                         }
                     }
                 }
             }
 
-            // ==============================
-            // PUZZLE BOARD AREA (Centered)
-            // ==============================
+            // =================================================
+            // PUZZLE BOARD
+            // =================================================
+
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp),
-                contentAlignment = Alignment.Center
+                contentAlignment =
+                    Alignment.Center
             ) {
+
                 PuzzleBoard(
-                    gridWidth = level.gridWidth,
-                    gridHeight = level.gridHeight,
-                    arrows = uiState.remainingArrows,
-                    escapingArrowIds = uiState.escapingArrowIds,
-                    blockedArrowId = uiState.blockedArrowId,
-                    hintedArrowId = uiState.hintedArrowId,
-                    onArrowTapped = onArrowTapped
+                    gridWidth =
+                        level.gridWidth,
+                    gridHeight =
+                        level.gridHeight,
+                    arrows =
+                        uiState.remainingArrows,
+                    escapingArrowIds =
+                        uiState.escapingArrowIds,
+                    blockedArrowId =
+                        uiState.blockedArrowId,
+                    hintedArrowId =
+                        uiState.hintedArrowId,
+                    onArrowTapped =
+                        onArrowTapped
                 )
             }
 
-            // BOTTOM SECTION: Controls + Bottom AdMob Banner
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // ==============================
-                // GAMEPLAY CONTROLS
-                // ==============================
+            // =================================================
+            // BOTTOM CONTROLS + BANNER
+            // =================================================
+
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(
+                            horizontal = 24.dp,
+                            vertical = 10.dp
+                        ),
+                    horizontalArrangement =
+                        Arrangement.SpaceEvenly,
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
-                    // HINT BUTTON
+
+                    // HINT
                     BadgedBox(
                         badge = {
-                            Badge(containerColor = if (uiState.hintsRemaining > 0) Color(0xFF0284C7) else Color(0xFFF59E0B)) {
-                                Text(text = if (uiState.hintsRemaining > 0) "${uiState.hintsRemaining}" else "+1 AD")
+
+                            Badge(
+                                containerColor =
+                                    if (uiState.hintsRemaining > 0)
+                                        Color(0xFF0284C7)
+                                    else
+                                        Color(0xFFF59E0B)
+                            ) {
+
+                                Text(
+                                    text =
+                                        if (uiState.hintsRemaining > 0)
+                                            "${uiState.hintsRemaining}"
+                                        else
+                                            "+1 AD"
+                                )
                             }
                         }
                     ) {
+
                         Surface(
                             shape = CircleShape,
                             color = Color.White,
                             shadowElevation = 3.dp,
-                            modifier = Modifier.size(52.dp)
+                            modifier =
+                                Modifier.size(52.dp)
                         ) {
+
                             IconButton(
                                 onClick = {
+
                                     SoundManager.playTap()
-                                    if (uiState.hintsRemaining > 0) {
+
+                                    if (
+                                        uiState.hintsRemaining > 0
+                                    ) {
+
                                         onUseHint()
+
                                     } else {
-                                        // Show rewarded ad to earn a hint
+
                                         if (activity != null) {
+
                                             AdManager.showRewarded(
                                                 activity = activity,
                                                 onUserEarnedReward = {
                                                     onGrantRewardedHint()
                                                 },
                                                 onAdUnavailable = {
+
                                                     Toast.makeText(
                                                         context,
                                                         "Reward ad is not available. Please try again.",
@@ -270,7 +393,9 @@ fun GameScreen(
                                                 },
                                                 onAdDismissed = {}
                                             )
+
                                         } else {
+
                                             Toast.makeText(
                                                 context,
                                                 "Reward ad is not available. Please try again.",
@@ -279,59 +404,84 @@ fun GameScreen(
                                         }
                                     }
                                 },
-                                enabled = uiState.lives > 0 && !uiState.isLevelCompleted
+                                enabled =
+                                    uiState.lives > 0 &&
+                                            !uiState.isLevelCompleted
                             ) {
+
                                 Icon(
-                                    imageVector = Icons.Default.Lightbulb,
-                                    contentDescription = "Hint",
-                                    tint = if (uiState.hintsRemaining > 0) Color(0xFF0284C7) else Color(0xFFD97706)
+                                    imageVector =
+                                        Icons.Default.Lightbulb,
+                                    contentDescription =
+                                        "Hint",
+                                    tint =
+                                        if (
+                                            uiState.hintsRemaining > 0
+                                        )
+                                            Color(0xFF0284C7)
+                                        else
+                                            Color(0xFFD97706)
                                 )
                             }
                         }
                     }
 
-                    // RESTART BUTTON
+                    // RESTART
                     Surface(
                         shape = CircleShape,
                         color = Color.White,
                         shadowElevation = 3.dp,
-                        modifier = Modifier.size(52.dp)
+                        modifier =
+                            Modifier.size(52.dp)
                     ) {
-                        IconButton(onClick = {
-                            SoundManager.playTap()
-                            onRestartLevel()
-                        }) {
+
+                        IconButton(
+                            onClick = {
+                                SoundManager.playTap()
+                                onRestartLevel()
+                            }
+                        ) {
+
                             Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Restart",
-                                tint = Color(0xFF334155)
+                                imageVector =
+                                    Icons.Default.Refresh,
+                                contentDescription =
+                                    "Restart",
+                                tint =
+                                    Color(0xFF334155)
                             )
                         }
                     }
 
-                    // LEVEL SELECT BUTTON
+                    // LEVEL SELECT
                     Surface(
                         shape = CircleShape,
                         color = Color.White,
                         shadowElevation = 3.dp,
-                        modifier = Modifier.size(52.dp)
+                        modifier =
+                            Modifier.size(52.dp)
                     ) {
-                        IconButton(onClick = {
-                            SoundManager.playTap()
-                            onOpenLevels()
-                        }) {
+
+                        IconButton(
+                            onClick = {
+                                SoundManager.playTap()
+                                onOpenLevels()
+                            }
+                        ) {
+
                             Icon(
-                                imageVector = Icons.Default.GridOn,
-                                contentDescription = "Levels",
-                                tint = Color(0xFF334155)
+                                imageVector =
+                                    Icons.Default.GridOn,
+                                contentDescription =
+                                    "Levels",
+                                tint =
+                                    Color(0xFF334155)
                             )
                         }
                     }
                 }
 
-                // ==============================
-                // BOTTOM ADMOB BANNER
-                // ==============================
+                // BOTTOM BANNER
                 AdManager.BottomBannerView(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -341,10 +491,15 @@ fun GameScreen(
             }
         }
 
-        // ========================================
-        // LEVEL COMPLETE OVERLAY DIALOG
-        // ========================================
-        if (uiState.isLevelCompleted && isShowingCompleteDialog) {
+        // =====================================================
+        // LEVEL COMPLETE DIALOG
+        // =====================================================
+
+        if (
+            uiState.isLevelCompleted &&
+            isShowingCompleteDialog
+        ) {
+
             LevelCompleteDialog(
                 uiState = uiState,
                 onNextLevel = onNextLevel,
@@ -352,10 +507,12 @@ fun GameScreen(
             )
         }
 
-        // ========================================
-        // GAME OVER OVERLAY DIALOG
-        // ========================================
+        // =====================================================
+        // GAME OVER
+        // =====================================================
+
         if (uiState.isGameOver) {
+
             GameOverDialog(
                 onRetry = onRestartLevel,
                 onBackToHome = onBack
