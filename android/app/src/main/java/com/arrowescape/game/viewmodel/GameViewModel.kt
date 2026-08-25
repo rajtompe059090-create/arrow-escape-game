@@ -183,8 +183,8 @@ class GameViewModel(
         val level = state.currentLevel ?: return
         if (state.remainingArrows.isEmpty() || state.isLevelCompleted) return
 
-        val solvableArrow = PuzzleEngine.findFirstSolvableArrow(
-            allArrows = state.remainingArrows,
+        val solvableArrow = PuzzleEngine.findFreeArrow(
+            arrows = state.remainingArrows,
             gridWidth = level.gridWidth,
             gridHeight = level.gridHeight
         )
