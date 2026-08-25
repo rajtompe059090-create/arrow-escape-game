@@ -41,11 +41,6 @@ fun PuzzleBoard(
     val blockedColor = Color(0xFFEF4444)
     val dotColor = Color(0xFFE2E8F0)
 
-    /*
-     * Animation:
-     * 0f = arrow board par hai
-     * 1f = arrow board se completely bahar hai
-     */
     val escapeProgress = remember {
         Animatable(0f)
     }
@@ -54,18 +49,13 @@ fun PuzzleBoard(
         escapingArrowIds.contains(arrow.id)
     }
 
-    /*
-     * Jab arrow escaping state mein aaye,
-     * usko smoothly board ke bahar move karo.
-     */
     LaunchedEffect(escapingArrow?.id) {
         if (escapingArrow != null) {
             escapeProgress.snapTo(0f)
-
             escapeProgress.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(
-                    durationMillis = 500
+                    durationMillis = 450
                 )
             )
         } else {
@@ -74,60 +64,36 @@ fun PuzzleBoard(
     }
 
     Surface(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         color = Color.White,
-        shadowElevation = 8.dp,
+        shadowElevation = 6.dp,
         modifier = modifier
             .fillMaxWidth()
-            .padding(12.dp)
+            .padding(8.dp)
     ) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .padding(20.dp)
+                .padding(14.dp)
                 .pointerInput(arrows, escapingArrowIds) {
                     detectTapGestures { tapOffset ->
-
                         val cellW: Float =
-                            size.width /
-                                    (gridWidth - 1)
-                                        .coerceAtLeast(1)
-                                        .toFloat()
-
+                            size.width / (gridWidth - 1).coerceAtLeast(1).toFloat()
                         val cellH: Float =
-                            size.height /
-                                    (gridHeight - 1)
-                                        .coerceAtLeast(1)
-                                        .toFloat()
+                            size.height / (gridHeight - 1).coerceAtLeast(1).toFloat()
 
                         val hit = arrows.findLast { arrow ->
-
-                            // Jo arrow already escape kar raha hai
-                            // usko dobara tap nahi kar sakte.
                             if (escapingArrowIds.contains(arrow.id)) {
                                 false
                             } else {
                                 arrow.points.any { point ->
-
-                                    val px =
-                                        point.x.toFloat() * cellW
-
-                                    val py =
-                                        point.y.toFloat() * cellH
-
-                                    val dx =
-                                        tapOffset.x - px
-
-                                    val dy =
-                                        tapOffset.y - py
-
-                                    val distance =
-                                        sqrt(
-                                            dx * dx + dy * dy
-                                        )
-
-                                    distance <= cellW * 0.65f
+                                    val px = point.x.toFloat() * cellW
+                                    val py = point.y.toFloat() * cellH
+                                    val dx = tapOffset.x - px
+                                    val dy = tapOffset.y - py
+                                    val distance = sqrt(dx * dx + dy * dy)
+                                    distance <= cellW * 0.70f
                                 }
                             }
                         }
@@ -138,29 +104,21 @@ fun PuzzleBoard(
                     }
                 }
         ) {
-
             val cellW: Float =
-                size.width /
-                        (gridWidth - 1)
-                            .coerceAtLeast(1)
-                            .toFloat()
-
+                size.width / (gridWidth - 1).coerceAtLeast(1).toFloat()
             val cellH: Float =
-                size.height /
-                        (gridHeight - 1)
-                            .coerceAtLeast(1)
-                            .toFloat()
+                size.height / (gridHeight - 1).coerceAtLeast(1).toFloat()
+
+            val dotRadius = (cellW * 0.07f).coerceIn(1.5.dp.toPx(), 3.dp.toPx())
 
             // --------------------------------
             // GRID DOTS
             // --------------------------------
-
             for (gx in 0 until gridWidth) {
                 for (gy in 0 until gridHeight) {
-
                     drawCircle(
                         color = dotColor,
-                        radius = 3.dp.toPx(),
+                        radius = dotRadius,
                         center = Offset(
                             gx.toFloat() * cellW,
                             gy.toFloat() * cellH
@@ -172,17 +130,14 @@ fun PuzzleBoard(
             // --------------------------------
             // DRAW ARROWS
             // --------------------------------
+            val baseStrokeWidth = (cellW * 0.16f).coerceIn(2.5.dp.toPx(), 6.dp.toPx())
+            val headLen = (cellW * 0.38f).coerceIn(7.dp.toPx(), 15.dp.toPx())
+            val headHalf = headLen * 0.58f
 
             arrows.forEach { arrow ->
-
-                val isEscaping =
-                    escapingArrowIds.contains(arrow.id)
-
-                val isBlocked =
-                    blockedArrowId == arrow.id
-
-                val isHinted =
-                    hintedArrowId == arrow.id
+                val isEscaping = escapingArrowIds.contains(arrow.id)
+                val isBlocked = blockedArrowId == arrow.id
+                val isHinted = hintedArrowId == arrow.id
 
                 val color = when {
                     isBlocked -> blockedColor
@@ -190,76 +145,40 @@ fun PuzzleBoard(
                     else -> navyColor
                 }
 
-                val strokeWidth =
-                    if (isHinted) {
-                        7.dp.toPx()
-                    } else {
-                        5.5.dp.toPx()
-                    }
+                val strokeWidth = if (isHinted) baseStrokeWidth * 1.3f else baseStrokeWidth
 
                 // --------------------------------
                 // ESCAPE MOVEMENT
                 // --------------------------------
-
                 var offsetX = 0f
                 var offsetY = 0f
 
                 if (isEscaping) {
-
-                    val distanceX: Float =
-                        size.width + cellW * 2f
-
-                    val distanceY: Float =
-                        size.height + cellH * 2f
-
-                    val progress: Float =
-                        escapeProgress.value
+                    val distanceX: Float = size.width + cellW * 2f
+                    val distanceY: Float = size.height + cellH * 2f
+                    val progress: Float = escapeProgress.value
 
                     when (arrow.headDirection) {
-
-                        Direction.UP -> {
-                            offsetY =
-                                -distanceY * progress
-                        }
-
-                        Direction.DOWN -> {
-                            offsetY =
-                                distanceY * progress
-                        }
-
-                        Direction.LEFT -> {
-                            offsetX =
-                                -distanceX * progress
-                        }
-
-                        Direction.RIGHT -> {
-                            offsetX =
-                                distanceX * progress
-                        }
+                        Direction.UP -> offsetY = -distanceY * progress
+                        Direction.DOWN -> offsetY = distanceY * progress
+                        Direction.LEFT -> offsetX = -distanceX * progress
+                        Direction.RIGHT -> offsetX = distanceX * progress
                     }
                 }
 
                 // --------------------------------
                 // ARROW BODY / PATH
                 // --------------------------------
-
                 if (arrow.points.size >= 2) {
-
                     val path = Path().apply {
-
-                        val first =
-                            arrow.points.first()
-
+                        val first = arrow.points.first()
                         moveTo(
                             first.x.toFloat() * cellW + offsetX,
                             first.y.toFloat() * cellH + offsetY
                         )
 
                         for (i in 1 until arrow.points.size) {
-
-                            val point =
-                                arrow.points[i]
-
+                            val point = arrow.points[i]
                             lineTo(
                                 point.x.toFloat() * cellW + offsetX,
                                 point.y.toFloat() * cellH + offsetY
@@ -281,102 +200,35 @@ fun PuzzleBoard(
                 // --------------------------------
                 // ARROW HEAD
                 // --------------------------------
+                val head = arrow.points.last()
+                val hx = head.x.toFloat() * cellW + offsetX
+                val hy = head.y.toFloat() * cellH + offsetY
 
-                val head =
-                    arrow.points.last()
-
-                val hx =
-                    head.x.toFloat() * cellW + offsetX
-
-                val hy =
-                    head.y.toFloat() * cellH + offsetY
-
-                val headLen =
-                    14.dp.toPx()
-
-                val headHalf =
-                    8.dp.toPx()
-
-                val headPath =
-                    Path().apply {
-
-                        when (arrow.headDirection) {
-
-                            Direction.UP -> {
-
-                                moveTo(
-                                    hx,
-                                    hy - 2.dp.toPx()
-                                )
-
-                                lineTo(
-                                    hx - headHalf,
-                                    hy + headLen
-                                )
-
-                                lineTo(
-                                    hx + headHalf,
-                                    hy + headLen
-                                )
-                            }
-
-                            Direction.DOWN -> {
-
-                                moveTo(
-                                    hx,
-                                    hy + 2.dp.toPx()
-                                )
-
-                                lineTo(
-                                    hx - headHalf,
-                                    hy - headLen
-                                )
-
-                                lineTo(
-                                    hx + headHalf,
-                                    hy - headLen
-                                )
-                            }
-
-                            Direction.LEFT -> {
-
-                                moveTo(
-                                    hx - 2.dp.toPx(),
-                                    hy
-                                )
-
-                                lineTo(
-                                    hx + headLen,
-                                    hy - headHalf
-                                )
-
-                                lineTo(
-                                    hx + headLen,
-                                    hy + headHalf
-                                )
-                            }
-
-                            Direction.RIGHT -> {
-
-                                moveTo(
-                                    hx + 2.dp.toPx(),
-                                    hy
-                                )
-
-                                lineTo(
-                                    hx - headLen,
-                                    hy - headHalf
-                                )
-
-                                lineTo(
-                                    hx - headLen,
-                                    hy + headHalf
-                                )
-                            }
+                val headPath = Path().apply {
+                    when (arrow.headDirection) {
+                        Direction.UP -> {
+                            moveTo(hx, hy - 2.dp.toPx())
+                            lineTo(hx - headHalf, hy + headLen)
+                            lineTo(hx + headHalf, hy + headLen)
                         }
-
-                        close()
+                        Direction.DOWN -> {
+                            moveTo(hx, hy + 2.dp.toPx())
+                            lineTo(hx - headHalf, hy - headLen)
+                            lineTo(hx + headHalf, hy - headLen)
+                        }
+                        Direction.LEFT -> {
+                            moveTo(hx - 2.dp.toPx(), hy)
+                            lineTo(hx + headLen, hy - headHalf)
+                            lineTo(hx + headLen, hy + headHalf)
+                        }
+                        Direction.RIGHT -> {
+                            moveTo(hx + 2.dp.toPx(), hy)
+                            lineTo(hx - headLen, hy - headHalf)
+                            lineTo(hx - headLen, hy + headHalf)
+                        }
                     }
+                    close()
+                }
 
                 drawPath(
                     path = headPath,

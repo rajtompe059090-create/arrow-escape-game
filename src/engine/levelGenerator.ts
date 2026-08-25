@@ -31,78 +31,79 @@ export function getLevelName(levelId: number, difficulty: Difficulty): string {
 }
 
 /**
- * Generates an Arrow Escape level dynamically based on levelId and difficulty tier:
- * Level 1–50: Easy (₹2) - solution depth >= 3
- * Level 51–100: Normal (₹3) - solution depth >= 6
- * Level 101–150: Hard (₹5) - solution depth >= 10
- * Level 151–200: Very Hard (₹10) - solution depth >= 15
- * Level 201+: Extreme (₹15) - solution depth >= 20
+ * Generates an Arrow Escape level with high arrow count & complex dependency DAGs:
+ * - EASY (Levels 1–50): 8–12 arrows (depth >= 6, dep >= 4)
+ * - NORMAL (Levels 51–100): 12–18 arrows (depth >= 10, dep >= 7)
+ * - HARD (Levels 101–150): 18–26 arrows (depth >= 15, dep >= 10)
+ * - VERY HARD (Levels 151–200): 26–36 arrows (depth >= 22, dep >= 14)
+ * - EXTREME (Levels 201+): 36–50 arrows (depth >= 30, dep >= 18)
  */
 export function generateLevel(levelId: number): LevelData {
   const difficulty = getLevelDifficulty(levelId);
   const rewardRupees = calculateLevelReward(levelId);
   const name = getLevelName(levelId, difficulty);
 
-  let gridWidth = 6;
-  let gridHeight = 6;
-  let minArrows = 5;
-  let maxArrows = 7;
-  let minSolutionDepth = 3;
-  let minDependencyDepth = 3;
-  let maxInitialFree = 2;
-  let maxBends = 0;
+  let gridWidth = 7;
+  let gridHeight = 7;
+  let minArrows = 8;
+  let maxArrows = 12;
+  let minSolutionDepth = 6;
+  let minDependencyDepth = 4;
+  let maxInitialFree = 3;
+  let maxBends = 1;
 
   if (difficulty === 'Easy') {
-    gridWidth = levelId <= 15 ? 5 : 6;
+    gridWidth = levelId <= 20 ? 6 : 7;
     gridHeight = gridWidth;
-    minArrows = Math.min(7, 4 + Math.floor((levelId - 1) / 10));
-    maxArrows = minArrows + 2;
-    minSolutionDepth = levelId <= 5 ? 3 : 4;
-    minDependencyDepth = 3;
-    maxInitialFree = 2;
+    minArrows = Math.min(12, 8 + Math.floor((levelId - 1) / 12));
+    maxArrows = Math.min(12, minArrows + 3);
+    minSolutionDepth = Math.min(minArrows, 6);
+    minDependencyDepth = 4;
+    maxInitialFree = 3;
     maxBends = levelId > 15 ? 1 : 0;
   } else if (difficulty === 'Normal') {
-    gridWidth = levelId <= 75 ? 6 : 7;
+    gridWidth = levelId <= 75 ? 7 : 8;
     gridHeight = gridWidth;
-    minArrows = Math.min(12, 8 + Math.floor((levelId - 51) / 12));
-    maxArrows = minArrows + 2;
-    minSolutionDepth = 6;
-    minDependencyDepth = 4;
-    maxInitialFree = 2;
-    maxBends = 1;
+    minArrows = Math.min(18, 12 + Math.floor((levelId - 51) / 8));
+    maxArrows = Math.min(18, minArrows + 3);
+    minSolutionDepth = Math.min(minArrows, 10);
+    minDependencyDepth = 7;
+    maxInitialFree = 3;
+    maxBends = 2;
   } else if (difficulty === 'Hard') {
-    gridWidth = levelId <= 125 ? 7 : 8;
+    gridWidth = levelId <= 125 ? 9 : 10;
     gridHeight = gridWidth;
-    minArrows = Math.min(16, 12 + Math.floor((levelId - 101) / 10));
-    maxArrows = minArrows + 3;
-    minSolutionDepth = 10;
-    minDependencyDepth = 6;
-    maxInitialFree = 2;
+    minArrows = Math.min(26, 18 + Math.floor((levelId - 101) / 6));
+    maxArrows = Math.min(26, minArrows + 4);
+    minSolutionDepth = Math.min(minArrows, 15);
+    minDependencyDepth = 10;
+    maxInitialFree = 3;
     maxBends = 2;
   } else if (difficulty === 'Very Hard') {
-    gridWidth = levelId <= 175 ? 8 : 9;
+    gridWidth = levelId <= 175 ? 10 : 12;
     gridHeight = gridWidth;
-    minArrows = Math.min(20, 16 + Math.floor((levelId - 151) / 10));
-    maxArrows = minArrows + 3;
-    minSolutionDepth = 15;
-    minDependencyDepth = 8;
-    maxInitialFree = 2;
-    maxBends = 2;
+    minArrows = Math.min(36, 26 + Math.floor((levelId - 151) / 5));
+    maxArrows = Math.min(36, minArrows + 5);
+    minSolutionDepth = Math.min(minArrows, 22);
+    minDependencyDepth = 14;
+    maxInitialFree = 3;
+    maxBends = 3;
   } else {
-    gridWidth = Math.min(10, 9 + Math.floor((levelId - 201) / 100));
+    // Extreme: 36–50 arrows
+    gridWidth = Math.min(14, 12 + Math.floor((levelId - 201) / 100));
     gridHeight = gridWidth;
-    minArrows = Math.min(26, 21 + Math.floor((levelId - 201) / 25));
-    maxArrows = minArrows + 4;
-    minSolutionDepth = 20;
-    minDependencyDepth = 10;
-    maxInitialFree = 2;
+    minArrows = Math.min(50, 36 + Math.floor((levelId - 201) / 15));
+    maxArrows = Math.min(50, minArrows + 6);
+    minSolutionDepth = Math.min(minArrows, 30);
+    minDependencyDepth = 18;
+    maxInitialFree = 4;
     maxBends = 3;
   }
 
   let bestCandidate: Arrow[] | null = null;
   let bestScore = -1;
 
-  const maxAttempts = 150;
+  const maxAttempts = 200;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const seed = (levelId * 2654435761 + attempt * 1013904223 + 73) >>> 0;
     const rng = createRNG(seed);
@@ -117,12 +118,17 @@ export function generateLevel(levelId: number): LevelData {
       rng
     );
 
-    if (candidate.length > 0) {
+    if (candidate.length >= minArrows) {
       const metrics = analyzePuzzle(candidate, gridWidth, gridHeight);
       if (metrics.isSolvable && metrics.solutionDepth >= candidate.length) {
-        const score = metrics.solutionDepth * 10 + metrics.dependencyDepth * 5 - metrics.initialFreeCount;
+        const score =
+          metrics.solutionDepth * 10 +
+          metrics.dependencyDepth * 6 +
+          candidate.length * 5 -
+          metrics.initialFreeCount * 2;
 
         if (
+          candidate.length >= minArrows &&
           metrics.solutionDepth >= minSolutionDepth &&
           metrics.dependencyDepth >= minDependencyDepth &&
           metrics.initialFreeCount <= maxInitialFree
@@ -146,7 +152,7 @@ export function generateLevel(levelId: number): LevelData {
     }
   }
 
-  if (bestCandidate && bestCandidate.length > 0) {
+  if (bestCandidate && bestCandidate.length >= Math.floor(minArrows * 0.85)) {
     return {
       id: levelId,
       name,
@@ -158,13 +164,14 @@ export function generateLevel(levelId: number): LevelData {
     };
   }
 
-  return createVerifiedFallbackLevel(
+  return createVerifiedComplexFallback(
     levelId,
     name,
     difficulty,
     rewardRupees,
     gridWidth,
-    gridHeight
+    gridHeight,
+    minArrows
   );
 }
 
@@ -197,10 +204,11 @@ function attemptBuildInterlockingArrows(
   const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
   let failureStreak = 0;
 
-  while (arrows.length < targetCount && failureStreak < 60) {
+  while (arrows.length < targetCount && failureStreak < 120) {
     failureStreak++;
 
-    const targetExisting = arrows.length > 0 && rng() < 0.8 ? arrows[Math.floor(rng() * arrows.length)] : null;
+    // Reverse dependency: target an existing arrow to block its path 85% of time
+    const targetExisting = arrows.length > 0 && rng() < 0.88 ? arrows[Math.floor(rng() * arrows.length)] : null;
     const dir = directions[Math.floor(rng() * directions.length)];
 
     let dx = 0;
@@ -210,7 +218,7 @@ function attemptBuildInterlockingArrows(
     else if (dir === 'LEFT') dx = -1;
     else if (dir === 'RIGHT') dx = 1;
 
-    let candidateHead: GridPoint | null = null;
+    let candidatePoint: GridPoint | null = null;
 
     if (targetExisting) {
       const exHead = targetExisting.points[targetExisting.points.length - 1];
@@ -221,6 +229,7 @@ function attemptBuildInterlockingArrows(
       else if (targetExisting.headDirection === 'LEFT') exDx = -1;
       else if (targetExisting.headDirection === 'RIGHT') exDx = 1;
 
+      // Raycast along targetExisting's exit path
       const rayPoints: GridPoint[] = [];
       let rx = exHead.x + exDx;
       let ry = exHead.y + exDy;
@@ -233,11 +242,11 @@ function attemptBuildInterlockingArrows(
       }
 
       if (rayPoints.length > 0) {
-        candidateHead = rayPoints[Math.floor(rng() * rayPoints.length)];
+        candidatePoint = rayPoints[Math.floor(rng() * rayPoints.length)];
       }
     }
 
-    if (!candidateHead || !isFree(candidateHead.x, candidateHead.y)) {
+    if (!candidatePoint || !isFree(candidatePoint.x, candidatePoint.y)) {
       const freeCells: GridPoint[] = [];
       for (let y = 0; y < gridHeight; y++) {
         for (let x = 0; x < gridWidth; x++) {
@@ -245,12 +254,15 @@ function attemptBuildInterlockingArrows(
         }
       }
       if (freeCells.length === 0) break;
-      candidateHead = freeCells[Math.floor(rng() * freeCells.length)];
+      candidatePoint = freeCells[Math.floor(rng() * freeCells.length)];
     }
 
-    const length = 2 + (rng() < 0.4 ? 1 : 0);
-    const useBend = maxBends > 0 && rng() < 0.4;
+    const length = 2 + (rng() < 0.35 ? 1 : 0);
+    const useBend = maxBends > 0 && rng() < 0.45;
     const points: GridPoint[] = [];
+
+    // The candidatePoint can be the head or somewhere in the body
+    const candidateHead = candidatePoint;
 
     if (!useBend || length < 2) {
       let valid = true;
@@ -317,7 +329,17 @@ function attemptBuildInterlockingArrows(
       };
 
       const testList = [...arrows, newArrow];
-      if (isLevelSolvable({ id: levelId, name: '', gridWidth, gridHeight, difficulty: 'Easy', arrows: testList, rewardRupees: 0 })) {
+      if (
+        isLevelSolvable({
+          id: levelId,
+          name: '',
+          gridWidth,
+          gridHeight,
+          difficulty: 'Easy',
+          arrows: testList,
+          rewardRupees: 0,
+        })
+      ) {
         markArrow(newArrow, true);
         arrows.push(newArrow);
         failureStreak = 0;
@@ -328,47 +350,90 @@ function attemptBuildInterlockingArrows(
   return arrows;
 }
 
-function createVerifiedFallbackLevel(
+function createVerifiedComplexFallback(
   levelId: number,
-  name: String,
+  name: string,
   difficulty: Difficulty,
   rewardRupees: number,
   gridWidth: number,
-  gridHeight: number
+  gridHeight: number,
+  targetCount: number
 ): LevelData {
   const arrows: Arrow[] = [];
-  const cx = Math.floor(gridWidth / 2);
-  const cy = Math.floor(gridHeight / 2);
+  const occupied = new Set<string>();
 
-  arrows.push({
-    id: `a_${levelId}_1`,
-    points: [{ x: cx, y: cy }, { x: cx + 1, y: cy }],
-    headDirection: 'RIGHT',
-  });
-  arrows.push({
-    id: `a_${levelId}_2`,
-    points: [{ x: cx + 2, y: cy - 1 }, { x: cx + 2, y: cy + 1 }],
-    headDirection: 'DOWN',
-  });
-  arrows.push({
-    id: `a_${levelId}_3`,
-    points: [{ x: cx + 3, y: cy + 2 }, { x: cx + 1, y: cy + 2 }],
-    headDirection: 'LEFT',
-  });
-  arrows.push({
-    id: `a_${levelId}_4`,
-    points: [{ x: cx, y: cy + 3 }, { x: cx, y: cy + 1 }],
-    headDirection: 'UP',
-  });
-  arrows.push({
-    id: `a_${levelId}_5`,
-    points: [{ x: cx - 1, y: cy - 1 }, { x: cx - 1, y: 0 }],
-    headDirection: 'UP',
-  });
+  const isCellAvailable = (x: number, y: number) => {
+    return x >= 0 && x < gridWidth && y >= 0 && y < gridHeight && !occupied.has(`${x},${y}`);
+  };
+
+  // Build concentric interlocking loop chains
+  let currentRing = 1;
+  while (arrows.length < targetCount && currentRing < Math.floor(gridWidth / 2)) {
+    const minX = currentRing;
+    const maxX = gridWidth - 1 - currentRing;
+    const minY = currentRing;
+    const maxY = gridHeight - 1 - currentRing;
+
+    if (maxX - minX >= 2 && maxY - minY >= 2) {
+      // Top row arrow (pointing right)
+      if (isCellAvailable(minX, minY) && isCellAvailable(maxX - 1, minY)) {
+        arrows.push({
+          id: `a_${levelId}_${arrows.length + 1}`,
+          points: [{ x: minX, y: minY }, { x: maxX - 1, y: minY }],
+          headDirection: 'RIGHT',
+        });
+        for (let x = minX; x <= maxX - 1; x++) occupied.add(`${x},${minY}`);
+      }
+
+      // Right col arrow (pointing down, blocks top row exit)
+      if (isCellAvailable(maxX, minY) && isCellAvailable(maxX, maxY - 1)) {
+        arrows.push({
+          id: `a_${levelId}_${arrows.length + 1}`,
+          points: [{ x: maxX, y: minY }, { x: maxX, y: maxY - 1 }],
+          headDirection: 'DOWN',
+        });
+        for (let y = minY; y <= maxY - 1; y++) occupied.add(`${maxX},${y}`);
+      }
+
+      // Bottom row arrow (pointing left, blocks right col exit)
+      if (isCellAvailable(maxX, maxY) && isCellAvailable(minX + 1, maxY)) {
+        arrows.push({
+          id: `a_${levelId}_${arrows.length + 1}`,
+          points: [{ x: maxX, y: maxY }, { x: minX + 1, y: maxY }],
+          headDirection: 'LEFT',
+        });
+        for (let x = minX + 1; x <= maxX; x++) occupied.add(`${x},${maxY}`);
+      }
+
+      // Left col arrow (pointing up, blocks bottom row exit)
+      if (isCellAvailable(minX, maxY) && isCellAvailable(minX, minY + 1)) {
+        arrows.push({
+          id: `a_${levelId}_${arrows.length + 1}`,
+          points: [{ x: minX, y: maxY }, { x: minX, y: minY + 1 }],
+          headDirection: 'UP',
+        });
+        for (let y = minY + 1; y <= maxY; y++) occupied.add(`${minX},${y}`);
+      }
+    }
+    currentRing += 2;
+  }
+
+  // Fill in outer escape avenues
+  for (let x = 0; x < gridWidth && arrows.length < targetCount; x += 2) {
+    if (isCellAvailable(x, 0) && isCellAvailable(x, 1)) {
+      arrows.push({
+        id: `a_${levelId}_${arrows.length + 1}`,
+        points: [{ x, y: 1 }, { x, y: 0 }],
+        headDirection: 'UP',
+      });
+      occupied.add(`${x},0`);
+      occupied.add(`${x},1`);
+    }
+  }
 
   return {
     id: levelId,
-    name: name as string,
+    name,
     gridWidth,
     gridHeight,
     difficulty,
