@@ -19,11 +19,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.GridOn
+import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.VolumeMute
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
@@ -32,20 +36,18 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.arrowescape.game.model.Difficulty
+import com.arrowescape.game.sound.SoundManager
 import com.arrowescape.game.viewmodel.GameUiState
 
 @Composable
@@ -54,355 +56,417 @@ fun HomeScreen(
     onPlayContinue: () -> Unit,
     onOpenLevels: () -> Unit,
     onOpenWallet: () -> Unit,
-    onOpenRewards: () -> Unit,
     onOpenDailyReward: () -> Unit,
+    onOpenWeeklyDashboard: () -> Unit,
+    onOpenRewards: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenSupport: () -> Unit,
     onToggleSound: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scrollState = rememberScrollState()
+    val currentLevel = if (uiState.unlockedLevel > 0) uiState.unlockedLevel else 1
+    val difficulty = Difficulty.fromLevel(currentLevel)
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF8FAFC))
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp, vertical = 24.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // TOP APP BAR: Sound Toggle & Quick Wallet Pill
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = Color.White,
-                shadowElevation = 2.dp,
-                modifier = Modifier.size(44.dp)
-            ) {
-                IconButton(onClick = onToggleSound) {
-                    Icon(
-                        imageVector = if (uiState.soundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeMute,
-                        contentDescription = "Sound Toggle",
-                        tint = Color(0xFF64748B)
-                    )
-                }
-            }
-
-            // Wallet Pill
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color(0xFFFFFBEB),
-                shadowElevation = 2.dp,
-                modifier = Modifier.clickable { onOpenWallet() }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountBalanceWallet,
-                        contentDescription = "Wallet",
-                        tint = Color(0xFFD97706),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Wallet: ₹${uiState.earnedRupees}",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF92400E),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // BRANDING & TITLE
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Arrow Escape",
-                style = MaterialTheme.typography.headlineLarge,
-                color = Color(0xFF0F172A),
-                fontWeight = FontWeight.Black,
-                fontSize = 32.sp
-            )
-            Text(
-                text = "Tap • Solve • Escape",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF64748B),
-                fontSize = 14.sp
-            )
+            // TOP BAR: Audio Quick Toggle, App Branding, Settings
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    IconButton(onClick = {
+                        SoundManager.playTap()
+                        onToggleSound()
+                    }) {
+                        Icon(
+                            imageVector = if (uiState.soundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeMute,
+                            contentDescription = "Sound Toggle",
+                            tint = if (uiState.soundEnabled) Color(0xFF0284C7) else Color(0xFF94A3B8),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF0284C7),
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Arrow Escape",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF0F172A),
+                        letterSpacing = (-0.5).sp
+                    )
+                }
 
-            // CURRENT LEVEL & EARNINGS HERO CARD
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    IconButton(onClick = {
+                        SoundManager.playTap()
+                        onOpenSettings()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            // TOP EARNINGS SUMMARY CARDS
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Total Earnings Card
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            SoundManager.playTap()
+                            onOpenWallet()
+                        }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.TrendingUp, contentDescription = null, tint = Color(0xFF2563EB), modifier = Modifier.size(14.dp))
+                            Text(text = "TOTAL EARNINGS", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color(0xFF94A3B8), letterSpacing = 0.5.sp)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "₹${"%.2f".format(uiState.totalEarnings)}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF0F172A)
+                        )
+                    }
+                }
+
+                // Wallet Balance Card
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            SoundManager.playTap()
+                            onOpenWallet()
+                        }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(14.dp))
+                            Text(text = "WALLET BALANCE", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color(0xFF94A3B8), letterSpacing = 0.5.sp)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "₹${"%.2f".format(uiState.walletBalance)}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF059669)
+                        )
+                    }
+                }
+            }
+
+            // PRIMARY HERO PLAY CARD
             Card(
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF0284C7), Color(0xFF0369A1))
-                            )
-                        )
-                        .padding(22.dp),
+                    modifier = Modifier.padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "CURRENT STAGE",
-                        color = Color(0xFFBAE6FD),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Level ${uiState.unlockedLevel}",
-                        color = Color.White,
-                        fontSize = 34.sp,
-                        fontWeight = FontWeight.Black
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // STATS ROW: Total Earnings & Wallet
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = Color(0x33FFFFFF),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .padding(vertical = 10.dp, horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = when (difficulty) {
+                                Difficulty.EASY -> Color(0xFFECFDF5)
+                                Difficulty.NORMAL -> Color(0xFFEFF6FF)
+                                Difficulty.HARD -> Color(0xFFFEF3C7)
+                                Difficulty.VERY_HARD -> Color(0xFFFFEDD5)
+                                Difficulty.EXTREME -> Color(0xFFFFE4E6)
+                            }
+                        ) {
                             Text(
-                                text = "TOTAL EARNINGS",
-                                color = Color(0xFFBAE6FD),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "₹${uiState.earnedRupees}",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Black
+                                text = "${difficulty.displayName} Tier",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (difficulty) {
+                                    Difficulty.EASY -> Color(0xFF059669)
+                                    Difficulty.NORMAL -> Color(0xFF2563EB)
+                                    Difficulty.HARD -> Color(0xFFD97706)
+                                    Difficulty.VERY_HARD -> Color(0xFFEA580C)
+                                    Difficulty.EXTREME -> Color(0xFFE11D48)
+                                },
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .height(28.dp)
-                                .width(1.dp)
-                                .background(Color(0x44FFFFFF))
+                        Text(
+                            text = "Reward: ₹${difficulty.rewardRupees}.00",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF16A34A)
                         )
+                    }
 
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "WALLET BALANCE",
-                                color = Color(0xFFBAE6FD),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "₹${uiState.earnedRupees}",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Black
-                            )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Level $currentLevel",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF0F172A)
+                    )
+
+                    Text(
+                        text = "Clear obstacles & guide all arrows to safety",
+                        fontSize = 12.sp,
+                        color = Color(0xFF64748B)
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Button(
+                        onClick = {
+                            SoundManager.playTap()
+                            onPlayContinue()
+                        },
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
+                            Text(text = "Play Level $currentLevel", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
+                    }
+                }
+            }
+
+            // NAVIGATION MENU TILES (2x2 Grid)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // 1. Level Select Tile
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            SoundManager.playTap()
+                            onOpenLevels()
+                        }
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFEFF6FF),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.GridOn, contentDescription = null, tint = Color(0xFF2563EB), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(text = "Levels (5 Tiers)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                        Text(text = "Easy to Extreme", fontSize = 10.sp, color = Color(0xFF64748B))
+                    }
+                }
+
+                // 2. Daily Check-In Tile
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            SoundManager.playTap()
+                            onOpenDailyReward()
+                        }
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFFEF3C7),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(text = "Daily Check-In", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                        Text(text = "Streak: Day ${((uiState.dailyStreak) % 7) + 1}", fontSize = 10.sp, color = Color(0xFFD97706), fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // 3. Weekly Dashboard Tile
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            SoundManager.playTap()
+                            onOpenWeeklyDashboard()
+                        }
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFF3E8FF),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFF9333EA), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(text = "Weekly Winners", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                        Text(text = "Top Tournaments", fontSize = 10.sp, color = Color(0xFF64748B))
+                    }
+                }
+
+                // 4. Rewards Hub Tile
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            SoundManager.playTap()
+                            onOpenRewards()
+                        }
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFECFDF5),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(text = "Rewards & Rates", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                        Text(text = "₹2 – ₹15 / level", fontSize = 10.sp, color = Color(0xFF059669), fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // PRIMARY ACTION BUTTONS
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // PLAY / CONTINUE BUTTON
-            Button(
-                onClick = onPlayContinue,
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .shadow(8.dp, RoundedCornerShape(20.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "PLAY LEVEL ${uiState.unlockedLevel}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-            }
-
-            // LEVELS BUTTON
-            OutlinedButton(
-                onClick = onOpenLevels,
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF1E293B)
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .shadow(2.dp, RoundedCornerShape(20.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.GridOn,
-                    contentDescription = null,
-                    tint = Color(0xFF0284C7)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "SELECT LEVEL",
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B),
-                    fontSize = 15.sp
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // NAVIGATION FEATURE CARDS (Wallet, Rewards, Daily Reward, Settings)
+        // FOOTER STATUS
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            HomeFeatureCard(
-                title = "Wallet",
-                subtitle = "₹${uiState.earnedRupees}",
-                icon = Icons.Default.AccountBalanceWallet,
-                iconColor = Color(0xFFD97706),
-                bgColor = Color(0xFFFFFBEB),
-                onClick = onOpenWallet,
-                modifier = Modifier.weight(1f)
-            )
-
-            HomeFeatureCard(
-                title = "Daily Reward",
-                subtitle = "Claim ₹ Cash",
-                icon = Icons.Default.CardGiftcard,
-                iconColor = Color(0xFF16A34A),
-                bgColor = Color(0xFFF0FDF4),
-                onClick = onOpenDailyReward,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            HomeFeatureCard(
-                title = "Rewards",
-                subtitle = "Tiers & Rates",
-                icon = Icons.Default.EmojiEvents,
-                iconColor = Color(0xFF9333EA),
-                bgColor = Color(0xFFFAF5FF),
-                onClick = onOpenRewards,
-                modifier = Modifier.weight(1f)
-            )
-
-            HomeFeatureCard(
-                title = "Settings",
-                subtitle = "Audio & More",
-                icon = Icons.Default.Settings,
-                iconColor = Color(0xFF475569),
-                bgColor = Color(0xFFF1F5F9),
-                onClick = onOpenSettings,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun HomeFeatureCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    iconColor: Color,
-    bgColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = Color.White,
-        shadowElevation = 2.dp,
-        modifier = modifier
-            .height(84.dp)
-            .clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = CircleShape,
-                color = bgColor,
-                modifier = Modifier.size(40.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = iconColor,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                Icon(Icons.Default.Lightbulb, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(14.dp))
+                Text(text = "${uiState.hintsRemaining} Free Hints Available", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Column(verticalArrangement = Arrangement.Center) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    color = Color(0xFF0F172A)
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 11.sp,
-                    color = Color(0xFF64748B),
-                    fontWeight = FontWeight.Medium
-                )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                modifier = Modifier.clickable {
+                    SoundManager.playTap()
+                    onOpenSupport()
+                }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(Icons.Default.Headphones, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(12.dp))
+                    Text(text = "Support", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                }
             }
         }
     }

@@ -20,10 +20,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.arrowescape.game.ads.AdManager
 import com.arrowescape.game.data.UserPreferencesRepository
+import com.arrowescape.game.sound.SoundManager
 import com.arrowescape.game.ui.components.DailyRewardDialog
 import com.arrowescape.game.ui.components.RewardsDialog
 import com.arrowescape.game.ui.components.SettingsDialog
+import com.arrowescape.game.ui.components.SupportDialog
 import com.arrowescape.game.ui.components.WalletDialog
+import com.arrowescape.game.ui.components.WeeklyDashboardDialog
+import com.arrowescape.game.ui.components.WithdrawDialog
 import com.arrowescape.game.ui.screens.GameScreen
 import com.arrowescape.game.ui.screens.HomeScreen
 import com.arrowescape.game.ui.screens.LevelSelectScreen
@@ -40,19 +44,14 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: GameViewModel by viewModels {
         object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(
-                modelClass: Class<T>
-            ): T {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 if (modelClass.isAssignableFrom(GameViewModel::class.java)) {
                     @Suppress("UNCHECKED_CAST")
                     return GameViewModel(
                         UserPreferencesRepository(applicationContext)
                     ) as T
                 }
-
-                throw IllegalArgumentException(
-                    "Unknown ViewModel class: ${modelClass.name}"
-                )
+                throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
             }
         }
     }
@@ -60,6 +59,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Initialize Procedural Sound & Haptics Engine
+        SoundManager.initialize(applicationContext)
+
+        // Initialize AdMob
+        AdManager.initialize(this)
 
         setContent {
             ArrowEscapeTheme {
@@ -95,16 +100,22 @@ fun ArrowEscapeMainApp(
 
     // Dialog States
     var showWalletDialog by remember { mutableStateOf(false) }
+    var showWithdrawDialog by remember { mutableStateOf(false) }
     var showRewardsDialog by remember { mutableStateOf(false) }
     var showDailyRewardDialog by remember { mutableStateOf(false) }
+    var showWeeklyDashboardDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var showSupportDialog by remember { mutableStateOf(false) }
 
     // Handle system back navigation
     BackHandler {
         when {
+            showSupportDialog -> showSupportDialog = false
+            showWithdrawDialog -> showWithdrawDialog = false
             showWalletDialog -> showWalletDialog = false
-            showRewardsDialog -> showRewardsDialog = false
+            showWeeklyDashboardDialog -> showWeeklyDashboardDialog = false
             showDailyRewardDialog -> showDailyRewardDialog = false
+            showRewardsDialog -> showRewardsDialog = false
             showSettingsDialog -> showSettingsDialog = false
             currentScreen == AppScreen.GAME -> currentScreen = AppScreen.HOME
             currentScreen == AppScreen.LEVEL_SELECT -> currentScreen = AppScreen.HOME
@@ -133,8 +144,14 @@ fun ArrowEscapeMainApp(
                 onOpenDailyReward = {
                     showDailyRewardDialog = true
                 },
+                onOpenWeeklyDashboard = {
+                    showWeeklyDashboardDialog = true
+                },
                 onOpenSettings = {
                     showSettingsDialog = true
+                },
+                onOpenSupport = {
+                    showSupportDialog = true
                 },
                 onToggleSound = {
                     viewModel.toggleSound()
@@ -164,6 +181,9 @@ fun ArrowEscapeMainApp(
                 onUseHint = {
                     viewModel.useHint()
                 },
+                onGrantRewardedHint = {
+                    viewModel.grantRewardedHint()
+                },
                 onRestartLevel = {
                     viewModel.restartCurrentLevel()
                 },
@@ -185,13 +205,41 @@ fun ArrowEscapeMainApp(
     if (showWalletDialog) {
         WalletDialog(
             uiState = uiState,
+            onOpenWithdraw = {
+                showWithdrawDialog = true
+            },
+            onOpenSupport = {
+                showSupportDialog = true
+            },
             onDismiss = { showWalletDialog = false }
+        )
+    }
+
+    if (showWithdrawDialog) {
+        WithdrawDialog(
+            uiState = uiState,
+            onRequestWithdrawal = { amount, upiId, onResult ->
+                viewModel.requestWithdrawal(amount, upiId, onResult)
+            },
+            onDismiss = { showWithdrawDialog = false }
         )
     }
 
     if (showRewardsDialog) {
         RewardsDialog(
             uiState = uiState,
+            onOpenDaily = {
+                showRewardsDialog = false
+                showDailyRewardDialog = true
+            },
+            onOpenWallet = {
+                showRewardsDialog = false
+                showWalletDialog = true
+            },
+            onOpenWeekly = {
+                showRewardsDialog = false
+                showWeeklyDashboardDialog = true
+            },
             onDismiss = { showRewardsDialog = false }
         )
     }
@@ -199,7 +247,17 @@ fun ArrowEscapeMainApp(
     if (showDailyRewardDialog) {
         DailyRewardDialog(
             uiState = uiState,
+            onClaim = { multiplier ->
+                viewModel.claimDailyReward(multiplier)
+            },
             onDismiss = { showDailyRewardDialog = false }
+        )
+    }
+
+    if (showWeeklyDashboardDialog) {
+        WeeklyDashboardDialog(
+            uiState = uiState,
+            onDismiss = { showWeeklyDashboardDialog = false }
         )
     }
 
@@ -207,7 +265,20 @@ fun ArrowEscapeMainApp(
         SettingsDialog(
             uiState = uiState,
             onToggleSound = { viewModel.toggleSound() },
+            onToggleMusic = { viewModel.toggleMusic() },
+            onToggleHaptics = { viewModel.toggleHaptics() },
+            onOpenSupport = {
+                showSettingsDialog = false
+                showSupportDialog = true
+            },
+            onResetProgress = { viewModel.resetAllProgress() },
             onDismiss = { showSettingsDialog = false }
+        )
+    }
+
+    if (showSupportDialog) {
+        SupportDialog(
+            onDismiss = { showSupportDialog = false }
         )
     }
 }
