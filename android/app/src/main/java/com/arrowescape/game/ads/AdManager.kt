@@ -27,7 +27,7 @@ import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
 
 object AdManager {
-    private const val TAG = "AdManager"
+    private const val TAG = "ArrowEscapeAds"
 
     // Real AdMob Unit IDs configured for Arrow Escape
     const val APP_ID = "ca-app-pub-6146868530948467~3047670393"
@@ -36,6 +36,8 @@ object AdManager {
     const val INTERSTITIAL_ID = "ca-app-pub-6146868530948467/9603566382"
     const val REWARDED_ID = "ca-app-pub-6146868530948467/5664321378"
     const val APP_OPEN_ID = "ca-app-pub-6146868530948467/2935989754"
+
+    private val isInitialized = AtomicBoolean(false)
 
     @Volatile
     private var interstitialAd: InterstitialAd? = null
@@ -52,26 +54,37 @@ object AdManager {
     private var isShowingAppOpenAd = false
 
     fun initialize(context: Context) {
-        try {
-            MobileAds.initialize(context) {
-                Log.d(TAG, "AdMob MobileAds initialized.")
-                loadInterstitial(context.applicationContext)
-                loadRewarded(context.applicationContext)
-                loadAppOpenAd(context.applicationContext)
+        if (isInitialized.compareAndSet(false, true)) {
+            try {
+                Log.d(TAG, "Initializing MobileAds SDK...")
+                MobileAds.initialize(context) { status ->
+                    Log.d(TAG, "MobileAds initialized: $status")
+                    loadInterstitial(context.applicationContext)
+                    loadRewarded(context.applicationContext)
+                    loadAppOpenAd(context.applicationContext)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "AdMob initialization error: ${e.message}", e)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "AdMob initialization error: ${e.message}")
         }
     }
 
     // ==========================================
-    // INTERSTITIAL ADS
+    // 1. INTERSTITIAL ADS
     // ==========================================
 
     fun loadInterstitial(context: Context) {
-        if (interstitialAd != null || isInterstitialLoading) return
+        if (interstitialAd != null) {
+            Log.d(TAG, "[Interstitial] already loaded and ready.")
+            return
+        }
+        if (isInterstitialLoading) {
+            Log.d(TAG, "[Interstitial] already loading in background.")
+            return
+        }
 
         isInterstitialLoading = true
+        Log.d(TAG, "[Interstitial] loading... Unit ID: $INTERSTITIAL_ID")
         val adRequest = AdRequest.Builder().build()
 
         InterstitialAd.load(
@@ -82,22 +95,33 @@ object AdManager {
                 override fun onAdLoaded(ad: InterstitialAd) {
                     interstitialAd = ad
                     isInterstitialLoading = false
-                    Log.d(TAG, "Interstitial ad loaded successfully.")
+                    Log.d(TAG, "[Interstitial] loaded successfully.")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     interstitialAd = null
                     isInterstitialLoading = false
-                    Log.w(TAG, "Interstitial ad failed to load: ${error.message}")
+                    Log.w(
+                        TAG,
+                        "[Interstitial] failed to load: code=${error.code}, message=${error.message}, domain=${error.domain}"
+                    )
                 }
             }
         )
     }
 
     fun showInterstitial(activity: Activity, onAdClosed: () -> Unit) {
+        if (activity.isFinishing || activity.isDestroyed) {
+            Log.w(TAG, "[Interstitial] cannot show: Activity is finishing or destroyed.")
+            onAdClosed()
+            return
+        }
+
         val currentAd = interstitialAd
         if (currentAd != null) {
+            Log.d(TAG, "[Interstitial] showing on activity: ${activity.localClassName}")
             val hasInvoked = AtomicBoolean(false)
+
             fun safeClose() {
                 if (hasInvoked.compareAndSet(false, true)) {
                     activity.runOnUiThread { onAdClosed() }
@@ -105,13 +129,22 @@ object AdManager {
             }
 
             currentAd.fullScreenContentCallback = object : FullScreenContentCallback() {
+                override fun onAdShowedFullScreenContent() {
+                    Log.d(TAG, "[Interstitial] showed full screen.")
+                }
+
                 override fun onAdDismissedFullScreenContent() {
+                    Log.d(TAG, "[Interstitial] dismissed.")
                     interstitialAd = null
                     loadInterstitial(activity.applicationContext)
                     safeClose()
                 }
 
                 override fun onAdFailedToShowFullScreenContent(error: AdError) {
+                    Log.w(
+                        TAG,
+                        "[Interstitial] failed to show: code=${error.code}, message=${error.message}"
+                    )
                     interstitialAd = null
                     loadInterstitial(activity.applicationContext)
                     safeClose()
@@ -122,27 +155,36 @@ object AdManager {
                 try {
                     currentAd.show(activity)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error showing interstitial: ${e.message}")
+                    Log.e(TAG, "[Interstitial] exception during show: ${e.message}", e)
                     interstitialAd = null
                     loadInterstitial(activity.applicationContext)
                     safeClose()
                 }
             }
         } else {
-            // Ad not ready: preload for next time and continue immediately
+            // Ad not available: do not block player, continue and preload
+            Log.w(TAG, "[Interstitial] ad not available. Proceeding without ad.")
             loadInterstitial(activity.applicationContext)
             onAdClosed()
         }
     }
 
     // ==========================================
-    // REWARDED ADS (HINTS)
+    // 2. REWARDED ADS (HINTS)
     // ==========================================
 
     fun loadRewarded(context: Context) {
-        if (rewardedAd != null || isRewardedLoading) return
+        if (rewardedAd != null) {
+            Log.d(TAG, "[Rewarded] already loaded and ready.")
+            return
+        }
+        if (isRewardedLoading) {
+            Log.d(TAG, "[Rewarded] already loading in background.")
+            return
+        }
 
         isRewardedLoading = true
+        Log.d(TAG, "[Rewarded] loading... Unit ID: $REWARDED_ID")
         val adRequest = AdRequest.Builder().build()
 
         RewardedAd.load(
@@ -153,13 +195,16 @@ object AdManager {
                 override fun onAdLoaded(ad: RewardedAd) {
                     rewardedAd = ad
                     isRewardedLoading = false
-                    Log.d(TAG, "Rewarded ad loaded successfully.")
+                    Log.d(TAG, "[Rewarded] loaded successfully.")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     rewardedAd = null
                     isRewardedLoading = false
-                    Log.w(TAG, "Rewarded ad failed to load: ${error.message}")
+                    Log.w(
+                        TAG,
+                        "[Rewarded] failed to load: code=${error.code}, message=${error.message}, domain=${error.domain}"
+                    )
                 }
             }
         )
@@ -168,63 +213,90 @@ object AdManager {
     fun showRewarded(
         activity: Activity,
         onUserEarnedReward: () -> Unit,
-        onAdDismissed: () -> Unit
+        onAdUnavailable: () -> Unit,
+        onAdDismissed: () -> Unit = {}
     ) {
+        if (activity.isFinishing || activity.isDestroyed) {
+            Log.w(TAG, "[Rewarded] cannot show: Activity is finishing or destroyed.")
+            onAdUnavailable()
+            return
+        }
+
         val currentAd = rewardedAd
         if (currentAd != null) {
+            Log.d(TAG, "[Rewarded] showing on activity: ${activity.localClassName}")
             val rewardGranted = AtomicBoolean(false)
             val dismissedInvoked = AtomicBoolean(false)
 
+            fun safeDismiss() {
+                if (dismissedInvoked.compareAndSet(false, true)) {
+                    activity.runOnUiThread { onAdDismissed() }
+                }
+            }
+
             currentAd.fullScreenContentCallback = object : FullScreenContentCallback() {
+                override fun onAdShowedFullScreenContent() {
+                    Log.d(TAG, "[Rewarded] showed full screen.")
+                }
+
                 override fun onAdDismissedFullScreenContent() {
+                    Log.d(TAG, "[Rewarded] dismissed.")
                     rewardedAd = null
                     loadRewarded(activity.applicationContext)
-                    if (dismissedInvoked.compareAndSet(false, true)) {
-                        activity.runOnUiThread { onAdDismissed() }
-                    }
+                    safeDismiss()
                 }
 
                 override fun onAdFailedToShowFullScreenContent(error: AdError) {
+                    Log.w(
+                        TAG,
+                        "[Rewarded] failed to show: code=${error.code}, message=${error.message}"
+                    )
                     rewardedAd = null
                     loadRewarded(activity.applicationContext)
-                    if (dismissedInvoked.compareAndSet(false, true)) {
-                        activity.runOnUiThread { onAdDismissed() }
+                    if (!rewardGranted.get()) {
+                        activity.runOnUiThread { onAdUnavailable() }
                     }
+                    safeDismiss()
                 }
             }
 
             activity.runOnUiThread {
                 try {
-                    currentAd.show(activity) { _ ->
-                        // STRICT REWARD VERIFICATION: only triggered by AdMob onUserEarnedReward
+                    currentAd.show(activity) { rewardItem ->
+                        Log.d(
+                            TAG,
+                            "[Rewarded] reward earned: type=${rewardItem.type}, amount=${rewardItem.amount}"
+                        )
                         if (rewardGranted.compareAndSet(false, true)) {
                             activity.runOnUiThread { onUserEarnedReward() }
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error showing rewarded ad: ${e.message}")
+                    Log.e(TAG, "[Rewarded] exception during show: ${e.message}", e)
                     rewardedAd = null
                     loadRewarded(activity.applicationContext)
-                    if (dismissedInvoked.compareAndSet(false, true)) {
-                        activity.runOnUiThread { onAdDismissed() }
+                    if (!rewardGranted.get()) {
+                        activity.runOnUiThread { onAdUnavailable() }
                     }
+                    safeDismiss()
                 }
             }
         } else {
-            // Not ready yet, start loading
+            Log.w(TAG, "[Rewarded] ad not available / not loaded yet.")
             loadRewarded(activity.applicationContext)
-            onAdDismissed()
+            onAdUnavailable()
         }
     }
 
     // ==========================================
-    // APP OPEN ADS
+    // 3. APP OPEN ADS
     // ==========================================
 
     fun loadAppOpenAd(context: Context) {
         if (appOpenAd != null || isAppOpenLoading) return
 
         isAppOpenLoading = true
+        Log.d(TAG, "[AppOpen] loading... Unit ID: $APP_OPEN_ID")
         val adRequest = AdRequest.Builder().build()
 
         AppOpenAd.load(
@@ -236,13 +308,16 @@ object AdManager {
                     appOpenAd = ad
                     isAppOpenLoading = false
                     appOpenLoadTime = Date().time
-                    Log.d(TAG, "App Open ad loaded successfully.")
+                    Log.d(TAG, "[AppOpen] loaded successfully.")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     appOpenAd = null
                     isAppOpenLoading = false
-                    Log.w(TAG, "App Open ad failed to load: ${error.message}")
+                    Log.w(
+                        TAG,
+                        "[AppOpen] failed to load: code=${error.code}, message=${error.message}"
+                    )
                 }
             }
         )
@@ -270,6 +345,7 @@ object AdManager {
         val ad = appOpenAd ?: return
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
+                Log.d(TAG, "[AppOpen] dismissed.")
                 appOpenAd = null
                 isShowingAppOpenAd = false
                 loadAppOpenAd(activity.applicationContext)
@@ -277,6 +353,10 @@ object AdManager {
             }
 
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
+                Log.w(
+                    TAG,
+                    "[AppOpen] failed to show: code=${error.code}, message=${error.message}"
+                )
                 appOpenAd = null
                 isShowingAppOpenAd = false
                 loadAppOpenAd(activity.applicationContext)
@@ -284,6 +364,7 @@ object AdManager {
             }
 
             override fun onAdShowedFullScreenContent() {
+                Log.d(TAG, "[AppOpen] showed full screen.")
                 isShowingAppOpenAd = true
             }
         }
@@ -292,6 +373,7 @@ object AdManager {
             try {
                 ad.show(activity)
             } catch (e: Exception) {
+                Log.e(TAG, "[AppOpen] exception during show: ${e.message}", e)
                 isShowingAppOpenAd = false
                 appOpenAd = null
                 loadAppOpenAd(activity.applicationContext)
@@ -301,7 +383,7 @@ object AdManager {
     }
 
     // ==========================================
-    // BANNER COMPOSABLES
+    // 4. BANNER COMPOSABLES
     // ==========================================
 
     @Composable
@@ -333,11 +415,14 @@ object AdManager {
                     )
                     adListener = object : AdListener() {
                         override fun onAdLoaded() {
-                            Log.d(TAG, "Banner loaded for $adUnitId")
+                            Log.d(TAG, "[Banner] loaded for $adUnitId")
                         }
 
                         override fun onAdFailedToLoad(error: LoadAdError) {
-                            Log.w(TAG, "Banner failed to load for $adUnitId: ${error.message}")
+                            Log.w(
+                                TAG,
+                                "[Banner] failed to load for $adUnitId: code=${error.code}, message=${error.message}"
+                            )
                         }
                     }
                     loadAd(AdRequest.Builder().build())
@@ -346,3 +431,4 @@ object AdManager {
         )
     }
 }
+

@@ -1,6 +1,7 @@
 package com.arrowescape.game.ui.screens
 
 import android.app.Activity
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -236,10 +237,21 @@ fun GameScreen(
                                                 onUserEarnedReward = {
                                                     onGrantRewardedHint()
                                                 },
+                                                onAdUnavailable = {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Reward ad is not available. Please try again.",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                },
                                                 onAdDismissed = {}
                                             )
                                         } else {
-                                            onGrantRewardedHint()
+                                            Toast.makeText(
+                                                context,
+                                                "Reward ad is not available. Please try again.",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     }
                                 },
