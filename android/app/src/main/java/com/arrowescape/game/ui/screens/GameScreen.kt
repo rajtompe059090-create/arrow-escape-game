@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,6 +33,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,6 +69,23 @@ fun GameScreen(
     val context = LocalContext.current
     val activity = context as? Activity
 
+    var isShowingCompleteDialog by remember(level.id) { mutableStateOf(false) }
+
+    // Level solved -> reward credited -> show interstitial -> dismiss/failure -> Level Complete UI
+    LaunchedEffect(uiState.isLevelCompleted, level.id) {
+        if (uiState.isLevelCompleted) {
+            if (activity != null) {
+                AdManager.showInterstitial(activity) {
+                    isShowingCompleteDialog = true
+                }
+            } else {
+                isShowingCompleteDialog = true
+            }
+        } else {
+            isShowingCompleteDialog = false
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -81,6 +104,7 @@ fun GameScreen(
                 AdManager.TopBannerView(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .wrapContentHeight()
                         .padding(vertical = 2.dp)
                 )
 
@@ -311,6 +335,7 @@ fun GameScreen(
                 AdManager.BottomBannerView(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .wrapContentHeight()
                         .padding(vertical = 2.dp)
                 )
             }
@@ -319,18 +344,10 @@ fun GameScreen(
         // ========================================
         // LEVEL COMPLETE OVERLAY DIALOG
         // ========================================
-        if (uiState.isLevelCompleted) {
+        if (uiState.isLevelCompleted && isShowingCompleteDialog) {
             LevelCompleteDialog(
                 uiState = uiState,
-                onNextLevel = {
-                    if (activity != null) {
-                        AdManager.showInterstitial(activity) {
-                            onNextLevel()
-                        }
-                    } else {
-                        onNextLevel()
-                    }
-                },
+                onNextLevel = onNextLevel,
                 onDismiss = {}
             )
         }

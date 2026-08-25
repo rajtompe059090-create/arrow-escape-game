@@ -5,10 +5,9 @@ import android.content.Context
 import android.util.Log
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdListener
@@ -70,7 +69,7 @@ object AdManager {
     }
 
     // ==========================================
-    // 1. INTERSTITIAL ADS
+    // 1. INTERSTITIAL ADS (LEVEL COMPLETE)
     // ==========================================
 
     fun loadInterstitial(context: Context) {
@@ -84,7 +83,7 @@ object AdManager {
         }
 
         isInterstitialLoading = true
-        Log.d(TAG, "INTERSTITIAL LOADING: Unit ID: $INTERSTITIAL_ID")
+        Log.d(TAG, "INTERSTITIAL_LOADING")
         val adRequest = AdRequest.Builder().build()
 
         InterstitialAd.load(
@@ -95,10 +94,7 @@ object AdManager {
                 override fun onAdLoaded(ad: InterstitialAd) {
                     interstitialAd = ad
                     isInterstitialLoading = false
-                    Log.d(
-                        TAG,
-                        "INTERSTITIAL LOADED successfully. AdUnit: ${ad.adUnitId}, responseInfo=${ad.responseInfo}"
-                    )
+                    Log.d(TAG, "INTERSTITIAL_LOADED")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
@@ -106,7 +102,7 @@ object AdManager {
                     isInterstitialLoading = false
                     Log.e(
                         TAG,
-                        "INTERSTITIAL LOAD FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
+                        "INTERSTITIAL_LOAD_FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
                     )
                 }
             }
@@ -115,14 +111,14 @@ object AdManager {
 
     fun showInterstitial(activity: Activity, onAdClosed: () -> Unit) {
         if (activity.isFinishing || activity.isDestroyed) {
-            Log.w(TAG, "INTERSTITIAL SHOW FAILED: Activity is finishing or destroyed.")
+            Log.w(TAG, "INTERSTITIAL_SHOW_FAILED: Activity is finishing or destroyed.")
             onAdClosed()
             return
         }
 
         val currentAd = interstitialAd
         if (currentAd != null) {
-            Log.d(TAG, "INTERSTITIAL SHOWING on ${activity.localClassName}")
+            Log.d(TAG, "INTERSTITIAL_SHOWING on ${activity.localClassName}")
             val hasInvoked = AtomicBoolean(false)
 
             fun safeClose() {
@@ -133,11 +129,11 @@ object AdManager {
 
             currentAd.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdShowedFullScreenContent() {
-                    Log.d(TAG, "INTERSTITIAL SHOWED FULL SCREEN")
+                    Log.d(TAG, "INTERSTITIAL_SHOWING")
                 }
 
                 override fun onAdDismissedFullScreenContent() {
-                    Log.d(TAG, "INTERSTITIAL DISMISSED")
+                    Log.d(TAG, "INTERSTITIAL_DISMISSED")
                     interstitialAd = null
                     loadInterstitial(activity.applicationContext)
                     safeClose()
@@ -146,7 +142,7 @@ object AdManager {
                 override fun onAdFailedToShowFullScreenContent(error: AdError) {
                     Log.e(
                         TAG,
-                        "INTERSTITIAL SHOW FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}"
+                        "INTERSTITIAL_SHOW_FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}"
                     )
                     interstitialAd = null
                     loadInterstitial(activity.applicationContext)
@@ -158,7 +154,7 @@ object AdManager {
                 try {
                     currentAd.show(activity)
                 } catch (e: Exception) {
-                    Log.e(TAG, "INTERSTITIAL SHOW EXCEPTION: ${e.message}", e)
+                    Log.e(TAG, "INTERSTITIAL_SHOW_FAILED: exception=${e.message}", e)
                     interstitialAd = null
                     loadInterstitial(activity.applicationContext)
                     safeClose()
@@ -166,7 +162,7 @@ object AdManager {
             }
         } else {
             // Ad not available: do not block player, continue and preload
-            Log.w(TAG, "INTERSTITIAL NOT AVAILABLE: Proceeding without ad and preloading.")
+            Log.w(TAG, "INTERSTITIAL_SHOW_FAILED: Not loaded yet, proceeding immediately.")
             loadInterstitial(activity.applicationContext)
             onAdClosed()
         }
@@ -392,15 +388,30 @@ object AdManager {
     // 4. BANNER COMPOSABLES (Top & Bottom)
     // ==========================================
 
+    private fun getAdaptiveAdSize(context: Context): AdSize {
+        return try {
+            val displayMetrics = context.resources.displayMetrics
+            val adWidthPixels = displayMetrics.widthPixels.toFloat()
+            val density = displayMetrics.density
+            val adWidth = if (density > 0) (adWidthPixels / density).toInt() else 320
+            AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, adWidth)
+        } catch (e: Exception) {
+            Log.w(TAG, "Fallback to AdSize.BANNER: ${e.message}")
+            AdSize.BANNER
+        }
+    }
+
     @Composable
     fun TopBannerView(modifier: Modifier = Modifier) {
         AndroidView(
             modifier = modifier
                 .fillMaxWidth()
-                .height(50.dp),
+                .wrapContentHeight(),
             factory = { ctx ->
-                AdView(ctx).apply {
-                    setAdSize(AdSize.BANNER)
+                Log.d(TAG, "TOP_BANNER_CREATED")
+                val adView = AdView(ctx).apply {
+                    val size = getAdaptiveAdSize(ctx)
+                    setAdSize(size)
                     this.adUnitId = TOP_BANNER_ID
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -408,18 +419,20 @@ object AdManager {
                     )
                     adListener = object : AdListener() {
                         override fun onAdLoaded() {
-                            Log.d(TAG, "TOP BANNER LOADED: $TOP_BANNER_ID")
+                            Log.d(TAG, "TOP_BANNER_LOADED")
                         }
 
                         override fun onAdFailedToLoad(error: LoadAdError) {
                             Log.e(
                                 TAG,
-                                "TOP BANNER FAILED: code=${error.code}, message=${error.message}"
+                                "TOP_BANNER_FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
                             )
                         }
                     }
-                    loadAd(AdRequest.Builder().build())
                 }
+                Log.d(TAG, "TOP_BANNER_LOADING")
+                adView.loadAd(AdRequest.Builder().build())
+                adView
             }
         )
     }
@@ -429,10 +442,12 @@ object AdManager {
         AndroidView(
             modifier = modifier
                 .fillMaxWidth()
-                .height(50.dp),
+                .wrapContentHeight(),
             factory = { ctx ->
-                AdView(ctx).apply {
-                    setAdSize(AdSize.BANNER)
+                Log.d(TAG, "BOTTOM_BANNER_CREATED")
+                val adView = AdView(ctx).apply {
+                    val size = getAdaptiveAdSize(ctx)
+                    setAdSize(size)
                     this.adUnitId = BOTTOM_BANNER_ID
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -440,20 +455,21 @@ object AdManager {
                     )
                     adListener = object : AdListener() {
                         override fun onAdLoaded() {
-                            Log.d(TAG, "BOTTOM BANNER LOADED: $BOTTOM_BANNER_ID")
+                            Log.d(TAG, "BOTTOM_BANNER_LOADED")
                         }
 
                         override fun onAdFailedToLoad(error: LoadAdError) {
                             Log.e(
                                 TAG,
-                                "BOTTOM BANNER FAILED: code=${error.code}, message=${error.message}"
+                                "BOTTOM_BANNER_FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
                             )
                         }
                     }
-                    loadAd(AdRequest.Builder().build())
                 }
+                Log.d(TAG, "BOTTOM_BANNER_LOADING")
+                adView.loadAd(AdRequest.Builder().build())
+                adView
             }
         )
     }
 }
-
