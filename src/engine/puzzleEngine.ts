@@ -1,24 +1,20 @@
 import { Arrow, Difficulty, Direction, GridPoint, LevelData } from '../types/game';
+import { calculateLevelReward } from '../services/earningsService';
+export { calculateLevelReward };
 
-/**
- * Checks if a point is occupied by any segment of any arrow in the list (excluding optional ignored arrow)
- */
-export function isPointOccupied(
-  point: GridPoint,
-  arrows: Arrow[],
-  excludeArrowId?: string
-): boolean {
-  for (const arrow of arrows) {
-    if (excludeArrowId && arrow.id === excludeArrowId) continue;
-    for (let i = 0; i < arrow.points.length - 1; i++) {
-      const p1 = arrow.points[i];
-      const p2 = arrow.points[i + 1];
-      if (isPointOnSegment(point, p1, p2)) {
-        return true;
-      }
-    }
-  }
-  return false;
+export interface PathCheckResult {
+  isClear: boolean;
+  blockingArrowId?: string;
+  blockingPoint?: GridPoint;
+}
+
+export interface SolverMetrics {
+  isSolvable: boolean;
+  solutionDepth: number;
+  dependencyDepth: number;
+  initialFreeCount: number;
+  maxBranchingFactor: number;
+  solutionOrder: string[];
 }
 
 /**
@@ -75,7 +71,7 @@ export function isArrowPathClear(
   allArrows: Arrow[],
   gridWidth: number,
   gridHeight: number
-): { isClear: boolean; blockingArrowId?: string; blockingPoint?: GridPoint } {
+): PathCheckResult {
   const head = arrow.points[arrow.points.length - 1];
   const dir = arrow.headDirection;
 
@@ -105,9 +101,9 @@ export function isArrowPathClear(
 
     for (const other of allArrows) {
       if (other.id === arrow.id) continue;
-      
+
       const occupied = getAllOccupiedPoints(other);
-      const isHit = occupied.some(p => p.x === targetPoint.x && p.y === targetPoint.y);
+      const isHit = occupied.some((p) => p.x === targetPoint.x && p.y === targetPoint.y);
       if (isHit) {
         return {
           isClear: false,
@@ -141,28 +137,104 @@ export function findFreeArrow(
   return null;
 }
 
+export function findAllFreeArrows(
+  arrows: Arrow[],
+  gridWidth: number,
+  gridHeight: number
+): Arrow[] {
+  return arrows.filter((arrow) => isArrowPathClear(arrow, arrows, gridWidth, gridHeight).isClear);
+}
+
+/**
+ * Full solver analysis evaluating solvability, solution depth, and blocker dependency graph depth
+ */
+export function analyzePuzzle(
+  arrows: Arrow[],
+  gridWidth: number,
+  gridHeight: number
+): SolverMetrics {
+  if (arrows.length === 0) {
+    return {
+      isSolvable: true,
+      solutionDepth: 0,
+      dependencyDepth: 0,
+      initialFreeCount: 0,
+      maxBranchingFactor: 0,
+      solutionOrder: [],
+    };
+  }
+
+  let remaining = [...arrows];
+  const solutionOrder: string[] = [];
+  const initialFree = findAllFreeArrows(remaining, gridWidth, gridHeight);
+  const initialFreeCount = initialFree.length;
+  let maxBranchingFactor = 0;
+
+  while (remaining.length > 0) {
+    const currentFree = findAllFreeArrows(remaining, gridWidth, gridHeight);
+    if (currentFree.length === 0) {
+      return {
+        isSolvable: false,
+        solutionDepth: solutionOrder.length,
+        dependencyDepth: 0,
+        initialFreeCount,
+        maxBranchingFactor,
+        solutionOrder,
+      };
+    }
+
+    maxBranchingFactor = Math.max(maxBranchingFactor, currentFree.length);
+    const picked = currentFree[0];
+    solutionOrder.push(picked.id);
+    remaining = remaining.filter((a) => a.id !== picked.id);
+  }
+
+  // Blocker graph analysis for dependency depth
+  const blockerMap = new Map<string, Set<string>>();
+  for (const arrow of arrows) {
+    const res = isArrowPathClear(arrow, arrows, gridWidth, gridHeight);
+    if (!res.isClear && res.blockingArrowId) {
+      if (!blockerMap.has(arrow.id)) {
+        blockerMap.set(arrow.id, new Set());
+      }
+      blockerMap.get(arrow.id)!.add(res.blockingArrowId);
+    }
+  }
+
+  let maxDep = 1;
+  for (const arrow of arrows) {
+    let curr = arrow.id;
+    let depth = 1;
+    const visited = new Set<string>([curr]);
+
+    while (true) {
+      const blockers = blockerMap.get(curr);
+      if (!blockers) break;
+      const nextBlocker = Array.from(blockers).find((b) => !visited.has(b));
+      if (!nextBlocker) break;
+      visited.add(nextBlocker);
+      curr = nextBlocker;
+      depth++;
+    }
+    maxDep = Math.max(maxDep, depth);
+  }
+
+  return {
+    isSolvable: true,
+    solutionDepth: solutionOrder.length,
+    dependencyDepth: maxDep,
+    initialFreeCount,
+    maxBranchingFactor,
+    solutionOrder,
+  };
+}
+
 /**
  * Validates level data to verify it has at least one valid solution sequence
  */
 export function isLevelSolvable(level: LevelData): boolean {
-  let remaining = [...level.arrows];
-  const maxSteps = remaining.length + 5;
-  let steps = 0;
-
-  while (remaining.length > 0 && steps < maxSteps) {
-    const free = findFreeArrow(remaining, level.gridWidth, level.gridHeight);
-    if (!free) {
-      return false; // Deadlock encountered
-    }
-    remaining = remaining.filter(a => a.id !== free.id);
-    steps++;
-  }
-
-  return remaining.length === 0;
+  return analyzePuzzle(level.arrows, level.gridWidth, level.gridHeight).isSolvable;
 }
-
-import { calculateLevelReward } from '../services/earningsService';
-export { calculateLevelReward };
 
 /**
  * Returns level difficulty tier based on continuous level ID:

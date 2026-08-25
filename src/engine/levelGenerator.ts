@@ -1,5 +1,11 @@
 import { Arrow, Difficulty, Direction, GridPoint, LevelData } from '../types/game';
-import { calculateLevelReward, getLevelDifficulty, isArrowPathClear, isLevelSolvable, getAllOccupiedPoints } from './puzzleEngine';
+import {
+  calculateLevelReward,
+  getLevelDifficulty,
+  analyzePuzzle,
+  isLevelSolvable,
+  getAllOccupiedPoints,
+} from './puzzleEngine';
 
 // Seeded PRNG for reproducible yet infinite distinct levels
 function createRNG(seed: number) {
@@ -19,9 +25,6 @@ const THEME_PREFIXES = [
   'Echo', 'Flux', 'Zenith', 'Prism', 'Vector'
 ];
 
-/**
- * Returns a procedural title for any level
- */
 export function getLevelName(levelId: number, difficulty: Difficulty): string {
   const prefix = THEME_PREFIXES[(levelId - 1) % THEME_PREFIXES.length];
   return `${prefix} #${levelId} (${difficulty})`;
@@ -29,71 +32,83 @@ export function getLevelName(levelId: number, difficulty: Difficulty): string {
 
 /**
  * Generates an Arrow Escape level dynamically based on levelId and difficulty tier:
- * Level 1–50: Easy (₹2)
- * Level 51–100: Normal (₹3)
- * Level 101–150: Hard (₹5)
- * Level 151–200: Very Hard (₹10)
- * Level 201+: Extreme (₹15)
- *
- * Algorithmically verifies that the generated puzzle has a 100% valid solution sequence before returning.
+ * Level 1–50: Easy (₹2) - solution depth >= 3
+ * Level 51–100: Normal (₹3) - solution depth >= 6
+ * Level 101–150: Hard (₹5) - solution depth >= 10
+ * Level 151–200: Very Hard (₹10) - solution depth >= 15
+ * Level 201+: Extreme (₹15) - solution depth >= 20
  */
 export function generateLevel(levelId: number): LevelData {
   const difficulty = getLevelDifficulty(levelId);
   const rewardRupees = calculateLevelReward(levelId);
   const name = getLevelName(levelId, difficulty);
 
-  // Progressive parameters based on requested difficulty tiers
   let gridWidth = 6;
   let gridHeight = 6;
-  let minArrows = 4;
-  let maxArrows = 5;
+  let minArrows = 5;
+  let maxArrows = 7;
+  let minSolutionDepth = 3;
+  let minDependencyDepth = 3;
+  let maxInitialFree = 2;
   let maxBends = 0;
 
   if (difficulty === 'Easy') {
-    // Levels 1–50: Easy
     gridWidth = levelId <= 15 ? 5 : 6;
     gridHeight = gridWidth;
-    minArrows = Math.min(6, 3 + Math.floor((levelId - 1) / 12));
-    maxArrows = minArrows + 1;
+    minArrows = Math.min(7, 4 + Math.floor((levelId - 1) / 10));
+    maxArrows = minArrows + 2;
+    minSolutionDepth = levelId <= 5 ? 3 : 4;
+    minDependencyDepth = 3;
+    maxInitialFree = 2;
     maxBends = levelId > 15 ? 1 : 0;
   } else if (difficulty === 'Normal') {
-    // Levels 51–100: Normal
     gridWidth = levelId <= 75 ? 6 : 7;
     gridHeight = gridWidth;
-    minArrows = Math.min(10, 7 + Math.floor((levelId - 51) / 15));
+    minArrows = Math.min(12, 8 + Math.floor((levelId - 51) / 12));
     maxArrows = minArrows + 2;
+    minSolutionDepth = 6;
+    minDependencyDepth = 4;
+    maxInitialFree = 2;
     maxBends = 1;
   } else if (difficulty === 'Hard') {
-    // Levels 101–150: Hard
     gridWidth = levelId <= 125 ? 7 : 8;
     gridHeight = gridWidth;
-    minArrows = Math.min(14, 11 + Math.floor((levelId - 101) / 12));
-    maxArrows = minArrows + 2;
+    minArrows = Math.min(16, 12 + Math.floor((levelId - 101) / 10));
+    maxArrows = minArrows + 3;
+    minSolutionDepth = 10;
+    minDependencyDepth = 6;
+    maxInitialFree = 2;
     maxBends = 2;
   } else if (difficulty === 'Very Hard') {
-    // Levels 151–200: Very Hard
     gridWidth = levelId <= 175 ? 8 : 9;
     gridHeight = gridWidth;
-    minArrows = Math.min(18, 15 + Math.floor((levelId - 151) / 10));
-    maxArrows = minArrows + 2;
+    minArrows = Math.min(20, 16 + Math.floor((levelId - 151) / 10));
+    maxArrows = minArrows + 3;
+    minSolutionDepth = 15;
+    minDependencyDepth = 8;
+    maxInitialFree = 2;
     maxBends = 2;
   } else {
-    // Levels 201+: Extreme
     gridWidth = Math.min(10, 9 + Math.floor((levelId - 201) / 100));
     gridHeight = gridWidth;
-    minArrows = Math.min(24, 19 + Math.floor((levelId - 201) / 25));
-    maxArrows = minArrows + 3;
+    minArrows = Math.min(26, 21 + Math.floor((levelId - 201) / 25));
+    maxArrows = minArrows + 4;
+    minSolutionDepth = 20;
+    minDependencyDepth = 10;
+    maxInitialFree = 2;
     maxBends = 3;
   }
 
-  // Attempt dynamic procedural generation with algorithmic solvability verification
-  const maxAttempts = 120;
+  let bestCandidate: Arrow[] | null = null;
+  let bestScore = -1;
+
+  const maxAttempts = 150;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const seed = (levelId * 2654435761 + attempt * 1013904223 + 47) >>> 0;
+    const seed = (levelId * 2654435761 + attempt * 1013904223 + 73) >>> 0;
     const rng = createRNG(seed);
 
     const targetCount = minArrows + Math.floor(rng() * (maxArrows - minArrows + 1));
-    const candidateArrows = attemptBuildSolvableArrows(
+    const candidate = attemptBuildInterlockingArrows(
       levelId,
       gridWidth,
       gridHeight,
@@ -102,34 +117,58 @@ export function generateLevel(levelId: number): LevelData {
       rng
     );
 
-    if (candidateArrows.length >= Math.max(3, minArrows - 1)) {
-      const testLevel: LevelData = {
-        id: levelId,
-        name,
-        gridWidth,
-        gridHeight,
-        difficulty,
-        arrows: candidateArrows,
-        rewardRupees,
-      };
+    if (candidate.length > 0) {
+      const metrics = analyzePuzzle(candidate, gridWidth, gridHeight);
+      if (metrics.isSolvable && metrics.solutionDepth >= candidate.length) {
+        const score = metrics.solutionDepth * 10 + metrics.dependencyDepth * 5 - metrics.initialFreeCount;
 
-      // Strict verification: Algorithmically simulate step-by-step resolution
-      if (isLevelSolvable(testLevel)) {
-        return testLevel;
+        if (
+          metrics.solutionDepth >= minSolutionDepth &&
+          metrics.dependencyDepth >= minDependencyDepth &&
+          metrics.initialFreeCount <= maxInitialFree
+        ) {
+          return {
+            id: levelId,
+            name,
+            gridWidth,
+            gridHeight,
+            difficulty,
+            arrows: candidate,
+            rewardRupees,
+          };
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestCandidate = candidate;
+        }
       }
     }
   }
 
-  // Fallback guaranteeing mathematically valid level with verified solver
-  return createVerifiedFallbackLevel(levelId, name, difficulty, rewardRupees, gridWidth, gridHeight, minArrows);
+  if (bestCandidate && bestCandidate.length > 0) {
+    return {
+      id: levelId,
+      name,
+      gridWidth,
+      gridHeight,
+      difficulty,
+      arrows: bestCandidate,
+      rewardRupees,
+    };
+  }
+
+  return createVerifiedFallbackLevel(
+    levelId,
+    name,
+    difficulty,
+    rewardRupees,
+    gridWidth,
+    gridHeight
+  );
 }
 
-/**
- * Builds arrows using reverse-dependency DAG placement.
- * Each arrow placed is guaranteed to have a clear exit path at the moment of insertion,
- * creating natural layers of obstacles and a verified reverse-order exit sequence.
- */
-function attemptBuildSolvableArrows(
+function attemptBuildInterlockingArrows(
   levelId: number,
   gridWidth: number,
   gridHeight: number,
@@ -142,11 +181,11 @@ function attemptBuildSolvableArrows(
     Array(gridWidth).fill(false)
   );
 
-  const isPointFree = (p: GridPoint) => {
-    return p.x >= 0 && p.x < gridWidth && p.y >= 0 && p.y < gridHeight && !occupiedGrid[p.y][p.x];
+  const isFree = (x: number, y: number) => {
+    return x >= 0 && x < gridWidth && y >= 0 && y < gridHeight && !occupiedGrid[y][x];
   };
 
-  const markArrowOccupied = (arrow: Arrow, val: boolean) => {
+  const markArrow = (arrow: Arrow, val: boolean) => {
     const pts = getAllOccupiedPoints(arrow);
     for (const p of pts) {
       if (p.x >= 0 && p.x < gridWidth && p.y >= 0 && p.y < gridHeight) {
@@ -156,131 +195,132 @@ function attemptBuildSolvableArrows(
   };
 
   const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+  let failureStreak = 0;
 
-  for (let aIdx = 0; aIdx < targetCount; aIdx++) {
-    let arrowPlaced = false;
-    let arrowTries = 0;
+  while (arrows.length < targetCount && failureStreak < 60) {
+    failureStreak++;
 
-    while (!arrowPlaced && arrowTries < 50) {
-      arrowTries++;
-      const dir = directions[Math.floor(rng() * directions.length)];
+    const targetExisting = arrows.length > 0 && rng() < 0.8 ? arrows[Math.floor(rng() * arrows.length)] : null;
+    const dir = directions[Math.floor(rng() * directions.length)];
 
-      const candidateHead: GridPoint = {
-        x: Math.floor(rng() * gridWidth),
-        y: Math.floor(rng() * gridHeight),
-      };
+    let dx = 0;
+    let dy = 0;
+    if (dir === 'UP') dy = -1;
+    else if (dir === 'DOWN') dy = 1;
+    else if (dir === 'LEFT') dx = -1;
+    else if (dir === 'RIGHT') dx = 1;
 
-      if (!isPointFree(candidateHead)) continue;
+    let candidateHead: GridPoint | null = null;
 
-      // Check if exit ray in direction `dir` is unobstructed in current board state
-      let dx = 0;
-      let dy = 0;
-      if (dir === 'UP') dy = -1;
-      else if (dir === 'DOWN') dy = 1;
-      else if (dir === 'LEFT') dx = -1;
-      else if (dir === 'RIGHT') dx = 1;
+    if (targetExisting) {
+      const exHead = targetExisting.points[targetExisting.points.length - 1];
+      let exDx = 0;
+      let exDy = 0;
+      if (targetExisting.headDirection === 'UP') exDy = -1;
+      else if (targetExisting.headDirection === 'DOWN') exDy = 1;
+      else if (targetExisting.headDirection === 'LEFT') exDx = -1;
+      else if (targetExisting.headDirection === 'RIGHT') exDx = 1;
 
-      let rayClear = true;
-      let curX = candidateHead.x + dx;
-      let curY = candidateHead.y + dy;
-      while (curX >= 0 && curX < gridWidth && curY >= 0 && curY < gridHeight) {
-        if (occupiedGrid[curY][curX]) {
-          rayClear = false;
+      const rayPoints: GridPoint[] = [];
+      let rx = exHead.x + exDx;
+      let ry = exHead.y + exDy;
+      while (rx >= 0 && rx < gridWidth && ry >= 0 && ry < gridHeight) {
+        if (isFree(rx, ry)) {
+          rayPoints.push({ x: rx, y: ry });
+        }
+        rx += exDx;
+        ry += exDy;
+      }
+
+      if (rayPoints.length > 0) {
+        candidateHead = rayPoints[Math.floor(rng() * rayPoints.length)];
+      }
+    }
+
+    if (!candidateHead || !isFree(candidateHead.x, candidateHead.y)) {
+      const freeCells: GridPoint[] = [];
+      for (let y = 0; y < gridHeight; y++) {
+        for (let x = 0; x < gridWidth; x++) {
+          if (isFree(x, y)) freeCells.push({ x, y });
+        }
+      }
+      if (freeCells.length === 0) break;
+      candidateHead = freeCells[Math.floor(rng() * freeCells.length)];
+    }
+
+    const length = 2 + (rng() < 0.4 ? 1 : 0);
+    const useBend = maxBends > 0 && rng() < 0.4;
+    const points: GridPoint[] = [];
+
+    if (!useBend || length < 2) {
+      let valid = true;
+      for (let s = 0; s < length; s++) {
+        const px = candidateHead.x - dx * s;
+        const py = candidateHead.y - dy * s;
+        if (!isFree(px, py)) {
+          valid = false;
           break;
         }
-        curX += dx;
-        curY += dy;
       }
+      if (valid) {
+        points.push(
+          { x: candidateHead.x - dx * (length - 1), y: candidateHead.y - dy * (length - 1) },
+          candidateHead
+        );
+      }
+    } else {
+      const len1 = 1 + Math.floor(rng() * 2);
+      const len2 = 1 + Math.floor(rng() * 2);
+      const perpDirs: GridPoint[] =
+        dx !== 0 ? [{ x: 0, y: 1 }, { x: 0, y: -1 }] : [{ x: 1, y: 0 }, { x: -1, y: 0 }];
+      const perp = perpDirs[Math.floor(rng() * perpDirs.length)];
 
-      if (!rayClear) continue;
+      const corner: GridPoint = {
+        x: candidateHead.x - dx * len1,
+        y: candidateHead.y - dy * len1,
+      };
+      const tail: GridPoint = {
+        x: corner.x + perp.x * len2,
+        y: corner.y + perp.y * len2,
+      };
 
-      // Arrow body construction
-      const length = 2 + Math.floor(rng() * 2); // 2 or 3 segments
-      const useBend = maxBends > 0 && rng() > 0.45;
-      const points: GridPoint[] = [];
-
-      if (!useBend || length < 2) {
-        // Straight arrow
-        const tail: GridPoint = {
-          x: candidateHead.x - dx * (length - 1),
-          y: candidateHead.y - dy * (length - 1),
-        };
-
-        let valid = true;
-        for (let step = 0; step < length; step++) {
-          const pt: GridPoint = {
-            x: candidateHead.x - dx * step,
-            y: candidateHead.y - dy * step,
-          };
-          if (!isPointFree(pt)) {
+      let valid = true;
+      for (let s = 0; s <= len1; s++) {
+        const px = candidateHead.x - dx * s;
+        const py = candidateHead.y - dy * s;
+        if (!isFree(px, py)) {
+          valid = false;
+          break;
+        }
+      }
+      if (valid) {
+        for (let s = 0; s <= len2; s++) {
+          const px = corner.x + perp.x * s;
+          const py = corner.y + perp.y * s;
+          if (!isFree(px, py)) {
             valid = false;
             break;
           }
         }
-
-        if (valid) {
-          points.push(tail, candidateHead);
-        }
-      } else {
-        // L-shaped arrow
-        const bendLen1 = 1 + Math.floor(rng() * 2);
-        const bendLen2 = 1 + Math.floor(rng() * 2);
-
-        const perpDirs: GridPoint[] =
-          dx !== 0 ? [{ x: 0, y: 1 }, { x: 0, y: -1 }] : [{ x: 1, y: 0 }, { x: -1, y: 0 }];
-        const perp = perpDirs[Math.floor(rng() * perpDirs.length)];
-
-        const corner: GridPoint = {
-          x: candidateHead.x - dx * bendLen1,
-          y: candidateHead.y - dy * bendLen1,
-        };
-        const tail: GridPoint = {
-          x: corner.x + perp.x * bendLen2,
-          y: corner.y + perp.y * bendLen2,
-        };
-
-        let valid = true;
-        for (let s = 0; s <= bendLen1; s++) {
-          const pt: GridPoint = {
-            x: candidateHead.x - dx * s,
-            y: candidateHead.y - dy * s,
-          };
-          if (!isPointFree(pt)) {
-            valid = false;
-            break;
-          }
-        }
-        if (valid) {
-          for (let s = 0; s <= bendLen2; s++) {
-            const pt: GridPoint = {
-              x: corner.x + perp.x * s,
-              y: corner.y + perp.y * s,
-            };
-            if (!isPointFree(pt)) {
-              valid = false;
-              break;
-            }
-          }
-        }
-
-        if (valid) {
-          points.push(tail, corner, candidateHead);
-        }
       }
 
-      if (points.length >= 2) {
-        const newArrow: Arrow = {
-          id: `a_${levelId}_${arrows.length + 1}`,
-          points,
-          headDirection: dir,
-        };
+      if (valid) {
+        points.push(tail, corner, candidateHead);
+      }
+    }
 
-        const check = isArrowPathClear(newArrow, arrows, gridWidth, gridHeight);
-        if (check.isClear) {
-          markArrowOccupied(newArrow, true);
-          arrows.push(newArrow);
-          arrowPlaced = true;
-        }
+    if (points.length >= 2) {
+      const newArrow: Arrow = {
+        id: `a_${levelId}_${arrows.length + 1}`,
+        points,
+        headDirection: dir,
+      };
+
+      const testList = [...arrows, newArrow];
+      if (isLevelSolvable({ id: levelId, name: '', gridWidth, gridHeight, difficulty: 'Easy', arrows: testList, rewardRupees: 0 })) {
+        markArrow(newArrow, true);
+        arrows.push(newArrow);
+        failureStreak = 0;
       }
     }
   }
@@ -288,55 +328,51 @@ function attemptBuildSolvableArrows(
   return arrows;
 }
 
-/**
- * Creates a verified perimeter-loop fallback level if stochastic search hits max attempts
- */
 function createVerifiedFallbackLevel(
   levelId: number,
-  name: string,
+  name: String,
   difficulty: Difficulty,
   rewardRupees: number,
   gridWidth: number,
-  gridHeight: number,
-  count: number
+  gridHeight: number
 ): LevelData {
   const arrows: Arrow[] = [];
-  const offset = (levelId % 2);
+  const cx = Math.floor(gridWidth / 2);
+  const cy = Math.floor(gridHeight / 2);
 
-  // Perimeter arrows with guaranteed outward paths
   arrows.push({
     id: `a_${levelId}_1`,
-    points: [{ x: 1 + offset, y: 1 }, { x: 1 + offset, y: 0 }],
+    points: [{ x: cx, y: cy }, { x: cx + 1, y: cy }],
+    headDirection: 'RIGHT',
+  });
+  arrows.push({
+    id: `a_${levelId}_2`,
+    points: [{ x: cx + 2, y: cy - 1 }, { x: cx + 2, y: cy + 1 }],
+    headDirection: 'DOWN',
+  });
+  arrows.push({
+    id: `a_${levelId}_3`,
+    points: [{ x: cx + 3, y: cy + 2 }, { x: cx + 1, y: cy + 2 }],
+    headDirection: 'LEFT',
+  });
+  arrows.push({
+    id: `a_${levelId}_4`,
+    points: [{ x: cx, y: cy + 3 }, { x: cx, y: cy + 1 }],
+    headDirection: 'UP',
+  });
+  arrows.push({
+    id: `a_${levelId}_5`,
+    points: [{ x: cx - 1, y: cy - 1 }, { x: cx - 1, y: 0 }],
     headDirection: 'UP',
   });
 
-  arrows.push({
-    id: `a_${levelId}_2`,
-    points: [{ x: gridWidth - 2, y: 1 + offset }, { x: gridWidth - 1, y: 1 + offset }],
-    headDirection: 'RIGHT',
-  });
-
-  arrows.push({
-    id: `a_${levelId}_3`,
-    points: [{ x: gridWidth - 2 - offset, y: gridHeight - 2 }, { x: gridWidth - 2 - offset, y: gridHeight - 1 }],
-    headDirection: 'DOWN',
-  });
-
-  arrows.push({
-    id: `a_${levelId}_4`,
-    points: [{ x: 1, y: gridHeight - 2 - offset }, { x: 0, y: gridHeight - 2 - offset }],
-    headDirection: 'LEFT',
-  });
-
-  const level: LevelData = {
+  return {
     id: levelId,
-    name,
+    name: name as string,
     gridWidth,
     gridHeight,
     difficulty,
     arrows,
     rewardRupees,
   };
-
-  return level;
 }

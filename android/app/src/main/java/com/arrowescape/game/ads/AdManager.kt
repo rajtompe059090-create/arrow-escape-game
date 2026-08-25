@@ -389,24 +389,11 @@ object AdManager {
     }
 
     // ==========================================
-    // 4. BANNER COMPOSABLES
+    // 4. BANNER COMPOSABLES (Top & Bottom)
     // ==========================================
 
     @Composable
     fun TopBannerView(modifier: Modifier = Modifier) {
-        BannerAdComposable(adUnitId = TOP_BANNER_ID, modifier = modifier)
-    }
-
-    @Composable
-    fun BottomBannerView(modifier: Modifier = Modifier) {
-        BannerAdComposable(adUnitId = BOTTOM_BANNER_ID, modifier = modifier)
-    }
-
-    @Composable
-    private fun BannerAdComposable(
-        adUnitId: String,
-        modifier: Modifier = Modifier
-    ) {
         AndroidView(
             modifier = modifier
                 .fillMaxWidth()
@@ -414,20 +401,52 @@ object AdManager {
             factory = { ctx ->
                 AdView(ctx).apply {
                     setAdSize(AdSize.BANNER)
-                    this.adUnitId = adUnitId
+                    this.adUnitId = TOP_BANNER_ID
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                     )
                     adListener = object : AdListener() {
                         override fun onAdLoaded() {
-                            Log.d(TAG, "BANNER LOADED: $adUnitId")
+                            Log.d(TAG, "TOP BANNER LOADED: $TOP_BANNER_ID")
                         }
 
                         override fun onAdFailedToLoad(error: LoadAdError) {
                             Log.e(
                                 TAG,
-                                "BANNER LOAD FAILED: $adUnitId: code=${error.code}, message=${error.message}"
+                                "TOP BANNER FAILED: code=${error.code}, message=${error.message}"
+                            )
+                        }
+                    }
+                    loadAd(AdRequest.Builder().build())
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun BottomBannerView(modifier: Modifier = Modifier) {
+        AndroidView(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            factory = { ctx ->
+                AdView(ctx).apply {
+                    setAdSize(AdSize.BANNER)
+                    this.adUnitId = BOTTOM_BANNER_ID
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                    adListener = object : AdListener() {
+                        override fun onAdLoaded() {
+                            Log.d(TAG, "BOTTOM BANNER LOADED: $BOTTOM_BANNER_ID")
+                        }
+
+                        override fun onAdFailedToLoad(error: LoadAdError) {
+                            Log.e(
+                                TAG,
+                                "BOTTOM BANNER FAILED: code=${error.code}, message=${error.message}"
                             )
                         }
                     }

@@ -10,6 +10,15 @@ data class PathCheckResult(
     val blockingPoint: GridPoint? = null
 )
 
+data class SolverMetrics(
+    val isSolvable: Boolean,
+    val solutionDepth: Int,
+    val dependencyDepth: Int,
+    val initialFreeCount: Int,
+    val maxBranchingFactor: Int,
+    val solutionOrder: List<String>
+)
+
 /**
  * Pure Kotlin Puzzle Engine for Arrow Escape.
  * Handles collision raycasting, path verification, hint discovery, and level solvability.
@@ -69,6 +78,102 @@ object PuzzleEngine {
         }
     }
 
+    fun findAllFreeArrows(
+        arrows: List<Arrow>,
+        gridWidth: Int,
+        gridHeight: Int
+    ): List<Arrow> {
+        return arrows.filter { arrow ->
+            isArrowPathClear(arrow, arrows, gridWidth, gridHeight).isClear
+        }
+    }
+
+    /**
+     * Algorithmically analyzes a level to measure its solution depth, dependency depth,
+     * branching factor, and initial free count.
+     */
+    fun analyzePuzzle(
+        arrows: List<Arrow>,
+        gridWidth: Int,
+        gridHeight: Int
+    ): SolverMetrics {
+        if (arrows.isEmpty()) {
+            return SolverMetrics(
+                isSolvable = true,
+                solutionDepth = 0,
+                dependencyDepth = 0,
+                initialFreeCount = 0,
+                maxBranchingFactor = 0,
+                solutionOrder = emptyList()
+            )
+        }
+
+        var remaining = arrows.toList()
+        val solutionOrder = ArrayList<String>()
+        var initialFreeCount = 0
+        var maxBranchingFactor = 0
+        var stepCount = 0
+
+        val initialFree = findAllFreeArrows(remaining, gridWidth, gridHeight)
+        initialFreeCount = initialFree.size
+
+        while (remaining.isNotEmpty()) {
+            val currentFree = findAllFreeArrows(remaining, gridWidth, gridHeight)
+            if (currentFree.isEmpty()) {
+                // Deadlock / unsolvable
+                return SolverMetrics(
+                    isSolvable = false,
+                    solutionDepth = solutionOrder.size,
+                    dependencyDepth = 0,
+                    initialFreeCount = initialFreeCount,
+                    maxBranchingFactor = maxBranchingFactor,
+                    solutionOrder = solutionOrder
+                )
+            }
+
+            maxBranchingFactor = maxOf(maxBranchingFactor, currentFree.size)
+            // Pick the first free arrow
+            val picked = currentFree.first()
+            solutionOrder.add(picked.id)
+            remaining = remaining.filter { it.id != picked.id }
+            stepCount++
+        }
+
+        // Calculate dependency depth using the direct blocker graph
+        val blockerMap = HashMap<String, MutableSet<String>>()
+        for (arrow in arrows) {
+            val res = isArrowPathClear(arrow, arrows, gridWidth, gridHeight)
+            if (!res.isClear && res.blockingArrowId != null) {
+                blockerMap.getOrPut(arrow.id) { HashSet() }.add(res.blockingArrowId)
+            }
+        }
+
+        var maxDep = 1
+        for (arrow in arrows) {
+            var curr = arrow.id
+            var depth = 1
+            val visited = HashSet<String>()
+            visited.add(curr)
+
+            while (true) {
+                val nextBlocker = blockerMap[curr]?.firstOrNull { !visited.contains(it) } ?: break
+                visited.add(nextBlocker)
+                curr = nextBlocker
+                depth++
+            }
+            maxDep = maxOf(maxDep, depth)
+        }
+
+        return SolverMetrics(
+            isSolvable = true,
+            solutionDepth = solutionOrder.size,
+            dependencyDepth = maxDep,
+            initialFreeCount = initialFreeCount,
+            maxBranchingFactor = maxBranchingFactor,
+            solutionOrder = solutionOrder
+        )
+    }
+
     /**
      * Algorithmically verifies that a level has at least one valid solution sequence to completion.
      */
@@ -77,17 +182,7 @@ object PuzzleEngine {
         gridWidth: Int,
         gridHeight: Int
     ): Boolean {
-        var remaining = arrows.toList()
-        val maxSteps = remaining.size + 5
-        var steps = 0
-
-        while (remaining.isNotEmpty() && steps < maxSteps) {
-            val free = findFreeArrow(remaining, gridWidth, gridHeight) ?: return false
-            remaining = remaining.filter { it.id != free.id }
-            steps++
-        }
-
-        return remaining.isEmpty()
+        return analyzePuzzle(arrows, gridWidth, gridHeight).isSolvable
     }
 
     fun getAllOccupiedPoints(arrow: Arrow): List<GridPoint> {
