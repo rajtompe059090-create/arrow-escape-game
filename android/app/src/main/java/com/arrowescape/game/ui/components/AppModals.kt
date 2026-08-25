@@ -88,7 +88,7 @@ import java.util.Date
 import java.util.Locale
 
 // CONFIGURATION CONSTANTS
-const val TELEGRAM_SUPPORT_USERNAME = "REPLACE_WITH_REAL_TELEGRAM_USERNAME"
+const val TELEGRAM_SUPPORT_USERNAME = "Earning_adda0590"
 const val SUPPORT_EMAIL = "rajtompe0590@gmail.com"
 
 // ==========================================
@@ -515,6 +515,7 @@ fun WithdrawDialog(
     onRequestWithdrawal: (amount: Double, upiId: String, onResult: (Boolean, String) -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     var amountText by remember { mutableStateOf("50") }
     var upiIdText by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
@@ -693,6 +694,52 @@ fun WithdrawDialog(
                         .height(48.dp)
                 ) {
                     Text(text = "Submit Withdrawal", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Support Shortcut Button inside Withdrawal Screen
+                OutlinedButton(
+                    onClick = {
+                        SoundManager.playTap()
+                        try {
+                            val defaultMsg = "Check my withdrawal"
+                            val encodedMsg = Uri.encode(defaultMsg)
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://t.me/$TELEGRAM_SUPPORT_USERNAME?text=$encodedMsg")
+                            )
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(
+                                context,
+                                "Telegram: @$TELEGRAM_SUPPORT_USERNAME",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Headphones,
+                            contentDescription = null,
+                            tint = Color(0xFF0284C7),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Withdrawal Support (Telegram)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0284C7)
+                        )
+                    }
                 }
             }
         }
