@@ -30,30 +30,14 @@ object AdManager {
     private const val TAG = "ArrowEscapeAds"
 
     // =========================================================
-    // APP ID
+    // ADMOB APP ID
     // =========================================================
 
     const val APP_ID =
         "ca-app-pub-6146868530948467~3047670393"
 
     // =========================================================
-    // GOOGLE TEST AD UNIT IDs
-    // =========================================================
-
-    private const val TEST_BANNER_ID =
-        "ca-app-pub-3940256099942544/6300978111"
-
-    private const val TEST_INTERSTITIAL_ID =
-        "ca-app-pub-3940256099942544/1033173712"
-
-    private const val TEST_REWARDED_ID =
-        "ca-app-pub-3940256099942544/5224354917"
-
-    private const val TEST_APP_OPEN_ID =
-        "ca-app-pub-3940256099942544/9257395921"
-
-    // =========================================================
-    // YOUR REAL AD UNIT IDs
+    // REAL ADMOB AD UNIT IDS
     // =========================================================
 
     const val TOP_BANNER_ID =
@@ -65,70 +49,13 @@ object AdManager {
     const val INTERSTITIAL_ID =
         "ca-app-pub-6146868530948467/9603566382"
 
+    // HINT / REWARDED - WORKING ID
     const val REWARDED_ID =
         "ca-app-pub-6146868530948467/5664321378"
 
+    // APP OPEN - WORKING ID
     const val APP_OPEN_ID =
         "ca-app-pub-6146868530948467/2935989754"
-
-    // =========================================================
-    // TEST SWITCHES
-    // =========================================================
-    //
-    // CURRENT TEST:
-    // TOP BANNER = REAL
-    // BOTTOM BANNER = TEST
-    // INTERSTITIAL = TEST
-    // REWARDED = TEST
-    // APP OPEN = TEST
-    //
-    // Ek-ek karke test karenge.
-    // =========================================================
-
-    private const val USE_TEST_TOP_BANNER = false
-    private const val USE_TEST_BOTTOM_BANNER = true
-    private const val USE_TEST_INTERSTITIAL = true
-    private const val USE_TEST_REWARDED = true
-    private const val USE_TEST_APP_OPEN = true
-
-    // =========================================================
-    // ACTIVE IDs
-    // =========================================================
-
-    private val activeTopBannerId: String
-        get() = if (USE_TEST_TOP_BANNER) {
-            TEST_BANNER_ID
-        } else {
-            TOP_BANNER_ID
-        }
-
-    private val activeBottomBannerId: String
-        get() = if (USE_TEST_BOTTOM_BANNER) {
-            TEST_BANNER_ID
-        } else {
-            BOTTOM_BANNER_ID
-        }
-
-    private val activeInterstitialId: String
-        get() = if (USE_TEST_INTERSTITIAL) {
-            TEST_INTERSTITIAL_ID
-        } else {
-            INTERSTITIAL_ID
-        }
-
-    private val activeRewardedId: String
-        get() = if (USE_TEST_REWARDED) {
-            TEST_REWARDED_ID
-        } else {
-            REWARDED_ID
-        }
-
-    private val activeAppOpenId: String
-        get() = if (USE_TEST_APP_OPEN) {
-            TEST_APP_OPEN_ID
-        } else {
-            APP_OPEN_ID
-        }
 
     // =========================================================
     // STATE
@@ -169,16 +96,17 @@ object AdManager {
 
             Log.d(
                 TAG,
-                "Initializing MobileAds SDK. App ID=$APP_ID"
+                "Initializing MobileAds SDK"
             )
 
             MobileAds.initialize(context) { status ->
 
                 Log.d(
                     TAG,
-                    "MobileAds initialized: $status"
+                    "MobileAds initialization complete: $status"
                 )
 
+                // Preload fullscreen ads
                 loadInterstitial(context.applicationContext)
                 loadRewarded(context.applicationContext)
                 loadAppOpenAd(context.applicationContext)
@@ -195,12 +123,19 @@ object AdManager {
     }
 
     // =========================================================
-    // INTERSTITIAL
+    // 1. INTERSTITIAL
+    // LEVEL COMPLETE AD
     // =========================================================
 
     fun loadInterstitial(context: Context) {
 
-        if (interstitialAd != null || isInterstitialLoading) {
+        if (interstitialAd != null) {
+            Log.d(TAG, "INTERSTITIAL_ALREADY_LOADED")
+            return
+        }
+
+        if (isInterstitialLoading) {
+            Log.d(TAG, "INTERSTITIAL_ALREADY_LOADING")
             return
         }
 
@@ -208,14 +143,16 @@ object AdManager {
 
         Log.d(
             TAG,
-            "INTERSTITIAL_LOADING: $activeInterstitialId"
+            "INTERSTITIAL_LOADING: $INTERSTITIAL_ID"
         )
+
+        val request =
+            AdRequest.Builder().build()
 
         InterstitialAd.load(
             context,
-            activeInterstitialId,
-            AdRequest.Builder().build(),
-
+            INTERSTITIAL_ID,
+            request,
             object : InterstitialAdLoadCallback() {
 
                 override fun onAdLoaded(
@@ -259,6 +196,12 @@ object AdManager {
             activity.isFinishing ||
             activity.isDestroyed
         ) {
+
+            Log.w(
+                TAG,
+                "INTERSTITIAL_ACTIVITY_UNAVAILABLE"
+            )
+
             onAdClosed()
             return
         }
@@ -332,7 +275,7 @@ object AdManager {
                     Log.e(
                         TAG,
                         "INTERSTITIAL_SHOW_FAILED: " +
-                                error.message
+                                "${error.message}"
                     )
 
                     interstitialAd = null
@@ -348,6 +291,11 @@ object AdManager {
         activity.runOnUiThread {
 
             try {
+
+                Log.d(
+                    TAG,
+                    "INTERSTITIAL_SHOWING"
+                )
 
                 ad.show(activity)
 
@@ -371,12 +319,18 @@ object AdManager {
     }
 
     // =========================================================
-    // REWARDED
+    // 2. REWARDED
+    // HINT AD - REAL ID
     // =========================================================
 
     fun loadRewarded(context: Context) {
 
-        if (rewardedAd != null || isRewardedLoading) {
+        if (rewardedAd != null) {
+            Log.d(TAG, "REWARDED_ALREADY_LOADED")
+            return
+        }
+
+        if (isRewardedLoading) {
             return
         }
 
@@ -384,14 +338,16 @@ object AdManager {
 
         Log.d(
             TAG,
-            "REWARDED_LOADING: $activeRewardedId"
+            "REWARDED_LOADING: $REWARDED_ID"
         )
+
+        val request =
+            AdRequest.Builder().build()
 
         RewardedAd.load(
             context,
-            activeRewardedId,
-            AdRequest.Builder().build(),
-
+            REWARDED_ID,
+            request,
             object : RewardedAdLoadCallback() {
 
                 override fun onAdLoaded(
@@ -436,6 +392,7 @@ object AdManager {
             activity.isFinishing ||
             activity.isDestroyed
         ) {
+
             onAdUnavailable()
             return
         }
@@ -491,6 +448,11 @@ object AdManager {
 
                 override fun onAdDismissedFullScreenContent() {
 
+                    Log.d(
+                        TAG,
+                        "REWARDED_DISMISSED"
+                    )
+
                     rewardedAd = null
 
                     loadRewarded(
@@ -516,7 +478,10 @@ object AdManager {
                     )
 
                     if (!rewardGranted.get()) {
-                        onAdUnavailable()
+
+                        activity.runOnUiThread {
+                            onAdUnavailable()
+                        }
                     }
 
                     safeDismiss()
@@ -529,6 +494,11 @@ object AdManager {
 
                 ad.show(activity) {
 
+                    Log.d(
+                        TAG,
+                        "REWARDED_USER_EARNED"
+                    )
+
                     if (
                         rewardGranted.compareAndSet(
                             false,
@@ -536,12 +506,9 @@ object AdManager {
                         )
                     ) {
 
-                        Log.d(
-                            TAG,
-                            "REWARDED_USER_EARNED"
-                        )
-
-                        onUserEarnedReward()
+                        activity.runOnUiThread {
+                            onUserEarnedReward()
+                        }
                     }
                 }
 
@@ -567,7 +534,7 @@ object AdManager {
     }
 
     // =========================================================
-    // APP OPEN
+    // 3. APP OPEN - REAL ID
     // =========================================================
 
     fun loadAppOpenAd(context: Context) {
@@ -583,14 +550,16 @@ object AdManager {
 
         Log.d(
             TAG,
-            "APP_OPEN_LOADING: $activeAppOpenId"
+            "APP_OPEN_LOADING: $APP_OPEN_ID"
         )
+
+        val request =
+            AdRequest.Builder().build()
 
         AppOpenAd.load(
             context,
-            activeAppOpenId,
-            AdRequest.Builder().build(),
-
+            APP_OPEN_ID,
+            request,
             object : AppOpenAd.AppOpenAdLoadCallback() {
 
                 override fun onAdLoaded(
@@ -632,11 +601,13 @@ object AdManager {
     }
 
     private fun wasLoadTimeLessThanNHoursAgo(
-        numHours: Long
+        hours: Long
     ): Boolean {
 
-        return Date().time - appOpenLoadTime <
-                3600000L * numHours
+        val difference =
+            Date().time - appOpenLoadTime
+
+        return difference < 3600000L * hours
     }
 
     fun showAppOpenAdIfAvailable(
@@ -674,6 +645,11 @@ object AdManager {
                 }
 
                 override fun onAdDismissedFullScreenContent() {
+
+                    Log.d(
+                        TAG,
+                        "APP_OPEN_DISMISSED"
+                    )
 
                     appOpenAd = null
                     isShowingAppOpenAd = false
@@ -732,7 +708,7 @@ object AdManager {
     }
 
     // =========================================================
-    // ADAPTIVE BANNER SIZE
+    // 4. ADAPTIVE BANNER SIZE
     // =========================================================
 
     private fun getAdaptiveAdSize(
@@ -750,8 +726,8 @@ object AdManager {
             val density =
                 metrics.density
 
-            val adWidth =
-                if (density > 0) {
+            val widthDp =
+                if (density > 0f) {
                     (widthPixels / density).toInt()
                 } else {
                     320
@@ -759,7 +735,7 @@ object AdManager {
 
             AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
                 context,
-                adWidth
+                widthDp
             )
 
         } catch (e: Exception) {
@@ -774,7 +750,7 @@ object AdManager {
     }
 
     // =========================================================
-    // TOP BANNER
+    // 5. TOP BANNER - REAL ID
     // =========================================================
 
     @Composable
@@ -787,16 +763,21 @@ object AdManager {
                 .fillMaxWidth()
                 .wrapContentHeight(),
 
-            factory = { ctx ->
+            factory = { context ->
 
-                AdView(ctx).apply {
+                Log.d(
+                    TAG,
+                    "TOP_BANNER_CREATED"
+                )
+
+                AdView(context).apply {
 
                     setAdSize(
-                        getAdaptiveAdSize(ctx)
+                        getAdaptiveAdSize(context)
                     )
 
                     adUnitId =
-                        activeTopBannerId
+                        TOP_BANNER_ID
 
                     layoutParams =
                         ViewGroup.LayoutParams(
@@ -811,9 +792,7 @@ object AdManager {
 
                                 Log.d(
                                     TAG,
-                                    "TOP_BANNER_LOADED | REAL=${
-                                        !USE_TEST_TOP_BANNER
-                                    }"
+                                    "TOP_BANNER_LOADED"
                                 )
                             }
 
@@ -833,7 +812,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "TOP_BANNER_LOADING: $activeTopBannerId"
+                        "TOP_BANNER_LOADING: $TOP_BANNER_ID"
                     )
 
                     loadAd(
@@ -845,7 +824,7 @@ object AdManager {
     }
 
     // =========================================================
-    // BOTTOM BANNER
+    // 6. BOTTOM BANNER - REAL ID
     // =========================================================
 
     @Composable
@@ -858,16 +837,21 @@ object AdManager {
                 .fillMaxWidth()
                 .wrapContentHeight(),
 
-            factory = { ctx ->
+            factory = { context ->
 
-                AdView(ctx).apply {
+                Log.d(
+                    TAG,
+                    "BOTTOM_BANNER_CREATED"
+                )
+
+                AdView(context).apply {
 
                     setAdSize(
-                        getAdaptiveAdSize(ctx)
+                        getAdaptiveAdSize(context)
                     )
 
                     adUnitId =
-                        activeBottomBannerId
+                        BOTTOM_BANNER_ID
 
                     layoutParams =
                         ViewGroup.LayoutParams(
@@ -882,7 +866,7 @@ object AdManager {
 
                                 Log.d(
                                     TAG,
-                                    "BOTTOM_BANNER_LOADED | TEST=$USE_TEST_BOTTOM_BANNER"
+                                    "BOTTOM_BANNER_LOADED"
                                 )
                             }
 
@@ -902,7 +886,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "BOTTOM_BANNER_LOADING: $activeBottomBannerId"
+                        "BOTTOM_BANNER_LOADING: $BOTTOM_BANNER_ID"
                     )
 
                     loadAd(
