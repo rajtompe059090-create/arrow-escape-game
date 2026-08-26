@@ -237,21 +237,23 @@ export function isLevelSolvable(level: LevelData): boolean {
 }
 
 /**
- * Returns level difficulty tier based on continuous level ID:
- * Levels 1–100 = Easy
- * Levels 101–200 = Normal
- * Levels 201–300 = Hard
- * Levels 301–400 = Very Hard
- * Levels 401–600 = Master
- * Levels 601–800 = Grandmaster
- * Levels 801–1000+ = Legendary
+ * Returns level difficulty tier based on continuous level ID across 8 tiers:
+ * Levels 1–50 = Easy (₹1)
+ * Levels 51–125 = Normal (₹2)
+ * Levels 126–250 = Medium (₹3)
+ * Levels 251–400 = Hard (₹5)
+ * Levels 401–550 = Very Hard (₹10)
+ * Levels 551–700 = Master (₹15)
+ * Levels 701–850 = Grandmaster (₹20)
+ * Levels 851+ = Legendary (₹25)
  */
 export function getLevelDifficulty(levelId: number): Difficulty {
-  if (levelId <= 100) return 'Easy';
-  if (levelId <= 200) return 'Normal';
-  if (levelId <= 300) return 'Hard';
-  if (levelId <= 400) return 'Very Hard';
-  if (levelId <= 600) return 'Master';
-  if (levelId <= 800) return 'Grandmaster';
+  if (levelId <= 50) return 'Easy';
+  if (levelId <= 125) return 'Normal';
+  if (levelId <= 250) return 'Medium';
+  if (levelId <= 400) return 'Hard';
+  if (levelId <= 550) return 'Very Hard';
+  if (levelId <= 700) return 'Master';
+  if (levelId <= 850) return 'Grandmaster';
   return 'Legendary';
 }

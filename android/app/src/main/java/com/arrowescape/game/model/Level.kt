@@ -5,23 +5,25 @@ enum class Difficulty(
     val levelRange: String,
     val rewardRupees: Double
 ) {
-    EASY("Easy", "Levels 1–100", 0.25),
-    NORMAL("Normal", "Levels 101–200", 0.50),
-    HARD("Hard", "Levels 201–300", 1.00),
-    VERY_HARD("Very Hard", "Levels 301–400", 1.50),
-    MASTER("Master", "Levels 401–600", 2.00),
-    GRANDMASTER("Grandmaster", "Levels 601–800", 2.50),
-    LEGENDARY("Legendary", "Levels 801+", 3.00);
+    EASY("Easy", "Levels 1–50", 1.00),
+    NORMAL("Normal", "Levels 51–125", 2.00),
+    MEDIUM("Medium", "Levels 126–250", 3.00),
+    HARD("Hard", "Levels 251–400", 5.00),
+    VERY_HARD("Very Hard", "Levels 401–550", 10.00),
+    MASTER("Master", "Levels 551–700", 15.00),
+    GRANDMASTER("Grandmaster", "Levels 701–850", 20.00),
+    LEGENDARY("Legendary", "Levels 851+", 25.00);
 
     companion object {
         fun fromLevel(levelId: Int): Difficulty {
             return when {
-                levelId <= 100 -> EASY
-                levelId <= 200 -> NORMAL
-                levelId <= 300 -> HARD
-                levelId <= 400 -> VERY_HARD
-                levelId <= 600 -> MASTER
-                levelId <= 800 -> GRANDMASTER
+                levelId <= 50 -> EASY
+                levelId <= 125 -> NORMAL
+                levelId <= 250 -> MEDIUM
+                levelId <= 400 -> HARD
+                levelId <= 550 -> VERY_HARD
+                levelId <= 700 -> MASTER
+                levelId <= 850 -> GRANDMASTER
                 else -> LEGENDARY
             }
         }

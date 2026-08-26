@@ -16,23 +16,25 @@ object LevelRepository {
 
     /**
      * Returns the list of level IDs for a specific difficulty tier:
-     * - EASY: 1..100
-     * - NORMAL: 101..200
-     * - HARD: 201..300
-     * - VERY_HARD: 301..400
-     * - MASTER: 401..600
-     * - GRANDMASTER: 601..800
-     * - LEGENDARY: 801..1000
+     * - EASY: 1..50
+     * - NORMAL: 51..125
+     * - MEDIUM: 126..250
+     * - HARD: 251..400
+     * - VERY_HARD: 401..550
+     * - MASTER: 551..700
+     * - GRANDMASTER: 701..850
+     * - LEGENDARY: 851..1000
      */
     fun getLevelsForTier(difficulty: Difficulty): List<Int> {
         return when (difficulty) {
-            Difficulty.EASY -> (1..100).toList()
-            Difficulty.NORMAL -> (101..200).toList()
-            Difficulty.HARD -> (201..300).toList()
-            Difficulty.VERY_HARD -> (301..400).toList()
-            Difficulty.MASTER -> (401..600).toList()
-            Difficulty.GRANDMASTER -> (601..800).toList()
-            Difficulty.LEGENDARY -> (801..1000).toList()
+            Difficulty.EASY -> (1..50).toList()
+            Difficulty.NORMAL -> (51..125).toList()
+            Difficulty.MEDIUM -> (126..250).toList()
+            Difficulty.HARD -> (251..400).toList()
+            Difficulty.VERY_HARD -> (401..550).toList()
+            Difficulty.MASTER -> (551..700).toList()
+            Difficulty.GRANDMASTER -> (701..850).toList()
+            Difficulty.LEGENDARY -> (851..1000).toList()
         }
     }
 

@@ -10,11 +10,12 @@ import { DailyRewardModal } from './components/DailyRewardModal';
 import { RewardsModal } from './components/RewardsModal';
 import { SettingsModal } from './components/SettingsModal';
 import { HintsModal } from './components/HintsModal';
+import { ProfileModal } from './components/ProfileModal';
 import { CodeExplorerModal } from './components/CodeExplorerModal';
 import { AdModal, AdType } from './components/AdModal';
 import { getLevel } from './data/levels';
 import { UserStats, EarningTransaction } from './types/game';
-import { loadUserStats, saveUserStats } from './utils/storage';
+import { loadUserStats, saveUserStats, resetGameProgress } from './utils/storage';
 import { sounds } from './utils/audio';
 import {
   calculateLevelReward,
@@ -41,6 +42,7 @@ export default function App() {
   const [showRewards, setShowRewards] = useState<boolean>(false);
   const [showHints, setShowHints] = useState<boolean>(false);
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [showProfile, setShowProfile] = useState<boolean>(false);
   const [showCodeExplorer, setShowCodeExplorer] = useState<boolean>(false);
 
   // Ad Overlay State
@@ -442,6 +444,7 @@ export default function App() {
                   onOpenWallet={() => setShowWallet(true)}
                   onOpenHints={() => setShowHints(true)}
                   onOpenSettings={() => setShowSettings(true)}
+                  onOpenProfile={() => setShowProfile(true)}
                   onOpenLevels={() => setCurrentScreen('LEVEL_SELECT')}
                   onToggleSound={handleToggleSound}
                 />
@@ -634,6 +637,26 @@ export default function App() {
           onOpenCodeExplorer={() => {
             setShowSettings(false);
             setShowCodeExplorer(true);
+          }}
+          onResetProgress={() => {
+            const resetStats = resetGameProgress();
+            setStats(resetStats);
+            setCurrentLevelId(1);
+          }}
+        />
+      )}
+
+      {showProfile && (
+        <ProfileModal
+          stats={stats}
+          onClose={() => setShowProfile(false)}
+          onUpdateStats={updated => {
+            updateStats(prev => ({ ...prev, ...updated }));
+          }}
+          onResetProgress={() => {
+            const resetStats = resetGameProgress();
+            setStats(resetStats);
+            setCurrentLevelId(1);
           }}
         />
       )}

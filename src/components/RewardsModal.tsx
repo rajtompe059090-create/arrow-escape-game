@@ -194,8 +194,8 @@ export const RewardsModal: React.FC<RewardsModalProps> = ({
               </span>
             </div>
 
-            <div className="text-[10px] text-slate-400 font-medium px-0.5">
-              • Level 1–50: <span className="font-bold text-slate-600">₹2</span> • 51–100: <span className="font-bold text-slate-600">₹3</span> • 101–150: <span className="font-bold text-slate-600">₹5</span> • 151–200: <span className="font-bold text-slate-600">₹10</span> • 201+: <span className="font-bold text-slate-600">₹15</span>
+            <div className="text-[10px] text-slate-400 font-medium px-0.5 leading-relaxed">
+              • 1-50: <span className="font-bold text-slate-600">₹1</span> • 51-125: <span className="font-bold text-slate-600">₹2</span> • 126-250: <span className="font-bold text-slate-600">₹3</span> • 251-400: <span className="font-bold text-slate-600">₹5</span> • 401-550: <span className="font-bold text-slate-600">₹10</span> • 551-700: <span className="font-bold text-slate-600">₹15</span> • 701-850: <span className="font-bold text-slate-600">₹20</span> • 851+: <span className="font-bold text-slate-600">₹25</span>
             </div>
           </div>
 

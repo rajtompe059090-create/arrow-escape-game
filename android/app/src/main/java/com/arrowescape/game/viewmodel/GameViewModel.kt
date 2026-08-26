@@ -37,7 +37,12 @@ data class GameUiState(
     val hapticsEnabled: Boolean = true,
     val dailyStreak: Int = 0,
     val lastDailyRewardTimestamp: Long = 0L,
-    val username: String = "PlayerOne",
+    val displayName: String = "Player One",
+    val username: String = "player_0590",
+    val uid: String = "AE-0590-7812",
+    val upiId: String = "",
+    val referralCode: String = "ARROW590",
+    val isRegistered: Boolean = false,
     val earningHistory: List<EarningTransaction> = emptyList(),
     val lastCompletedReward: Double = 0.0,
     val isLastLevelAlreadyClaimed: Boolean = false
@@ -65,7 +70,12 @@ class GameViewModel(
                         hapticsEnabled = prefs.hapticsEnabled,
                         dailyStreak = prefs.dailyStreak,
                         lastDailyRewardTimestamp = prefs.lastDailyRewardTimestamp,
+                        displayName = prefs.displayName,
                         username = prefs.username,
+                        uid = prefs.uid,
+                        upiId = prefs.upiId,
+                        referralCode = prefs.referralCode,
+                        isRegistered = prefs.isRegistered,
                         earningHistory = prefs.earningHistory
                     )
                 }
@@ -286,6 +296,18 @@ class GameViewModel(
     fun setUsername(name: String) {
         viewModelScope.launch {
             prefsRepo.setUsername(name)
+        }
+    }
+
+    fun updateProfile(displayName: String, username: String, upiId: String) {
+        viewModelScope.launch {
+            prefsRepo.updateProfile(displayName, username, upiId)
+        }
+    }
+
+    fun setUpiId(upiId: String) {
+        viewModelScope.launch {
+            prefsRepo.setUpiId(upiId)
         }
     }
 

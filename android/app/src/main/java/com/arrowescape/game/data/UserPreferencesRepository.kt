@@ -32,7 +32,12 @@ data class UserPreferences(
     val hapticsEnabled: Boolean,
     val dailyStreak: Int,
     val lastDailyRewardTimestamp: Long,
+    val displayName: String,
     val username: String,
+    val uid: String,
+    val upiId: String,
+    val referralCode: String,
+    val isRegistered: Boolean,
     val earningHistory: List<EarningTransaction>
 )
 
@@ -49,7 +54,14 @@ class UserPreferencesRepository(private val context: Context) {
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val DAILY_STREAK = intPreferencesKey("daily_streak")
         val LAST_DAILY_TIMESTAMP = longPreferencesKey("last_daily_timestamp")
+        val DISPLAY_NAME = stringPreferencesKey("display_name")
         val USERNAME = stringPreferencesKey("username")
+        val UID = stringPreferencesKey("uid")
+        val UPI_ID = stringPreferencesKey("upi_id")
+        val REFERRAL_CODE = stringPreferencesKey("referral_code")
+        val IS_REGISTERED = booleanPreferencesKey("is_registered")
+        val PASSWORD_SALT = stringPreferencesKey("password_salt")
+        val PASSWORD_HASH = stringPreferencesKey("password_hash")
         val TRANSACTIONS_JSON = stringPreferencesKey("transactions_json")
     }
 
@@ -65,7 +77,12 @@ class UserPreferencesRepository(private val context: Context) {
             val haptics = prefs[Keys.HAPTICS_ENABLED] ?: true
             val streak = prefs[Keys.DAILY_STREAK] ?: 0
             val lastDaily = prefs[Keys.LAST_DAILY_TIMESTAMP] ?: 0L
-            val uname = prefs[Keys.USERNAME] ?: "PlayerOne"
+            val dispName = prefs[Keys.DISPLAY_NAME] ?: "Player One"
+            val uname = prefs[Keys.USERNAME] ?: "player_0590"
+            val userUid = prefs[Keys.UID] ?: "AE-0590-7812"
+            val upi = prefs[Keys.UPI_ID] ?: ""
+            val refCode = prefs[Keys.REFERRAL_CODE] ?: "ARROW590"
+            val registered = prefs[Keys.IS_REGISTERED] ?: false
             val txJson = prefs[Keys.TRANSACTIONS_JSON] ?: "[]"
             val history = parseTransactions(txJson)
 
@@ -80,7 +97,12 @@ class UserPreferencesRepository(private val context: Context) {
                 hapticsEnabled = haptics,
                 dailyStreak = streak,
                 lastDailyRewardTimestamp = lastDaily,
+                displayName = dispName,
                 username = uname,
+                uid = userUid,
+                upiId = upi,
+                referralCode = refCode,
+                isRegistered = registered,
                 earningHistory = history
             )
         }
@@ -209,6 +231,20 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setUsername(name: String) {
         context.dataStore.edit { prefs ->
             prefs[Keys.USERNAME] = name
+        }
+    }
+
+    suspend fun updateProfile(displayName: String, username: String, upiId: String) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.DISPLAY_NAME] = displayName
+            prefs[Keys.USERNAME] = username
+            prefs[Keys.UPI_ID] = upiId
+        }
+    }
+
+    suspend fun setUpiId(upiId: String) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.UPI_ID] = upiId
         }
     }
 

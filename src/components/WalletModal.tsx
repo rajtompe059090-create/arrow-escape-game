@@ -12,13 +12,14 @@ export const WalletModal: React.FC<WalletModalProps> = ({ stats, onClose }) => {
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HISTORY'>('OVERVIEW');
 
   const tiers = [
-    { range: 'Levels 1 – 100', rate: '₹0.25 / lvl', difficulty: 'Easy', active: stats.unlockedLevel <= 100 },
-    { range: 'Levels 101 – 200', rate: '₹0.50 / lvl', difficulty: 'Normal', active: stats.unlockedLevel > 100 && stats.unlockedLevel <= 200 },
-    { range: 'Levels 201 – 300', rate: '₹0.75 / lvl', difficulty: 'Hard', active: stats.unlockedLevel > 200 && stats.unlockedLevel <= 300 },
-    { range: 'Levels 301 – 400', rate: '₹1.00 / lvl', difficulty: 'Very Hard', active: stats.unlockedLevel > 300 && stats.unlockedLevel <= 400 },
-    { range: 'Levels 401 – 600', rate: '₹1.25 / lvl', difficulty: 'Master', active: stats.unlockedLevel > 400 && stats.unlockedLevel <= 600 },
-    { range: 'Levels 601 – 800', rate: '₹1.50 / lvl', difficulty: 'Grandmaster', active: stats.unlockedLevel > 600 && stats.unlockedLevel <= 800 },
-    { range: 'Levels 801+', rate: '₹2.00 / lvl', difficulty: 'Legendary', active: stats.unlockedLevel > 800 },
+    { range: 'Levels 1 – 50', rate: '₹1.00 / lvl', difficulty: 'Easy', active: stats.unlockedLevel <= 50 },
+    { range: 'Levels 51 – 125', rate: '₹2.00 / lvl', difficulty: 'Normal', active: stats.unlockedLevel > 50 && stats.unlockedLevel <= 125 },
+    { range: 'Levels 126 – 250', rate: '₹3.00 / lvl', difficulty: 'Medium', active: stats.unlockedLevel > 125 && stats.unlockedLevel <= 250 },
+    { range: 'Levels 251 – 400', rate: '₹5.00 / lvl', difficulty: 'Hard', active: stats.unlockedLevel > 250 && stats.unlockedLevel <= 400 },
+    { range: 'Levels 401 – 550', rate: '₹10.00 / lvl', difficulty: 'Very Hard', active: stats.unlockedLevel > 400 && stats.unlockedLevel <= 550 },
+    { range: 'Levels 551 – 700', rate: '₹15.00 / lvl', difficulty: 'Master', active: stats.unlockedLevel > 550 && stats.unlockedLevel <= 700 },
+    { range: 'Levels 701 – 850', rate: '₹20.00 / lvl', difficulty: 'Grandmaster', active: stats.unlockedLevel > 700 && stats.unlockedLevel <= 850 },
+    { range: 'Levels 851+', rate: '₹25.00 / lvl', difficulty: 'Legendary', active: stats.unlockedLevel > 850 },
   ];
 
   const formatDate = (timestamp: number) => {

@@ -17,6 +17,12 @@ const DEFAULT_STATS: UserStats = {
   notificationsEnabled: true,
   dailyStreak: 1,
   earningHistory: [],
+  displayName: 'Player One',
+  username: 'player_0590',
+  uid: 'AE-849201',
+  referralCode: 'ESC-849201',
+  upiId: '',
+  isRegistered: false,
 };
 
 export function loadUserStats(): UserStats {

@@ -28,6 +28,7 @@ interface SettingsModalProps {
   onToggleTheme: () => void;
   onToggleNotifications: () => void;
   onOpenCodeExplorer: () => void;
+  onResetProgress?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -39,6 +40,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleTheme,
   onToggleNotifications,
   onOpenCodeExplorer,
+  onResetProgress,
 }) => {
   const isDark = stats.theme === 'dark';
   const isSoundOn = stats.soundEnabled !== false;
@@ -330,6 +332,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <Smartphone className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform mr-1" />
           </button>
         </div>
+
+        {/* Reset Progress Section */}
+        {onResetProgress && (
+          <div className="pt-1 border-t border-slate-100 flex flex-col space-y-2">
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to reset all game progress? This will reset levels, earnings, and streak.')) {
+                  sounds.playTap();
+                  onResetProgress();
+                  onClose();
+                }
+              }}
+              className="w-full py-2.5 px-4 bg-rose-50 hover:bg-rose-100 active:scale-98 text-rose-700 font-bold rounded-2xl border border-rose-200 flex items-center justify-center space-x-2 text-xs transition-all cursor-pointer"
+            >
+              <span>Reset Game Progress</span>
+            </button>
+          </div>
+        )}
 
         {/* Close Button */}
         <button

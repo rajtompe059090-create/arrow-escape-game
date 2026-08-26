@@ -12,7 +12,7 @@ export interface Arrow {
   color?: string;
 }
 
-export type Difficulty = 'Easy' | 'Normal' | 'Hard' | 'Very Hard' | 'Master' | 'Grandmaster' | 'Legendary';
+export type Difficulty = 'Easy' | 'Normal' | 'Medium' | 'Hard' | 'Very Hard' | 'Master' | 'Grandmaster' | 'Legendary';
 export type DifficultyTier = Difficulty;
 
 export interface LevelData {
@@ -22,7 +22,7 @@ export interface LevelData {
   gridHeight: number;
   difficulty: Difficulty;
   arrows: Arrow[];
-  rewardRupees: number; // 0.25, 0.50, 0.75, 1.00, 1.25, 1.50, 2.00
+  rewardRupees: number; // ₹1, ₹2, ₹3, ₹5, ₹10, ₹15, ₹20, ₹25
 }
 
 export interface EarningTransaction {
@@ -30,8 +30,9 @@ export interface EarningTransaction {
   title: string;
   amount: number;
   timestamp: number;
-  type: 'LEVEL_REWARD' | 'DAILY_REWARD' | 'AD_BONUS' | 'HINT_REWARD';
+  type: 'LEVEL_REWARD' | 'DAILY_REWARD' | 'AD_BONUS' | 'HINT_REWARD' | 'WITHDRAWAL';
   levelId?: number;
+  status?: string;
 }
 
 export interface UserStats {
@@ -50,6 +51,13 @@ export interface UserStats {
   lastDailyRewardDate?: string;
   lastDailyRewardTimestamp?: number;
   earningHistory: EarningTransaction[];
+  // Profile & Account fields
+  displayName?: string;
+  username?: string;
+  uid?: string;
+  upiId?: string;
+  referralCode?: string;
+  isRegistered?: boolean;
 }
 
 export interface ActiveGameState {

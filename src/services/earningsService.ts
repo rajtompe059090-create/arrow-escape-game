@@ -14,24 +14,26 @@ import { UserStats, EarningTransaction } from '../types/game';
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Validates and calculates level reward according to the 7-tier difficulty system:
- * - Level 1–100 (Easy): ₹0.25
- * - Level 101–200 (Normal): ₹0.50
- * - Level 201–300 (Hard): ₹0.75
- * - Level 301–400 (Very Hard): ₹1.00
- * - Level 401–600 (Master): ₹1.25
- * - Level 601–800 (Grandmaster): ₹1.50
- * - Level 801–1000+ (Legendary): ₹2.00
+ * Validates and calculates level reward according to the 8-tier difficulty progression:
+ * - Level 1–50 (Easy): ₹1.00
+ * - Level 51–125 (Normal): ₹2.00
+ * - Level 126–250 (Medium): ₹3.00
+ * - Level 251–400 (Hard): ₹5.00
+ * - Level 401–550 (Very Hard): ₹10.00
+ * - Level 551–700 (Master): ₹15.00
+ * - Level 701–850 (Grandmaster): ₹20.00
+ * - Level 851+ (Legendary): ₹25.00
  */
 export function calculateLevelReward(levelId: number): number {
   const lvl = Math.max(1, Math.floor(levelId));
-  if (lvl <= 100) return 0.25;
-  if (lvl <= 200) return 0.50;
-  if (lvl <= 300) return 0.75;
-  if (lvl <= 400) return 1.00;
-  if (lvl <= 600) return 1.25;
-  if (lvl <= 800) return 1.50;
-  return 2.00;
+  if (lvl <= 50) return 1;
+  if (lvl <= 125) return 2;
+  if (lvl <= 250) return 3;
+  if (lvl <= 400) return 5;
+  if (lvl <= 550) return 10;
+  if (lvl <= 700) return 15;
+  if (lvl <= 850) return 20;
+  return 25;
 }
 
 /**
