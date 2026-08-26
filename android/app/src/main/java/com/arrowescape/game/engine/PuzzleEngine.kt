@@ -207,13 +207,7 @@ object PuzzleEngine {
         return pointsSet.toList()
     }
 
-    fun calculateRewardRupees(levelId: Int): Int {
-        return when {
-            levelId <= 50 -> 2
-            levelId <= 100 -> 3
-            levelId <= 150 -> 5
-            levelId <= 200 -> 10
-            else -> 15
-        }
+    fun calculateRewardRupees(levelId: Int): Double {
+        return Difficulty.fromLevel(levelId).rewardRupees
     }
 }

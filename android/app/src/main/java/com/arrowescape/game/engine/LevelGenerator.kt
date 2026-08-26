@@ -48,59 +48,85 @@ object LevelGenerator {
 
         when (difficulty) {
             Difficulty.EASY -> {
-                // Levels 1–50: Easy (8–12 arrows)
-                gridWidth = if (levelId <= 20) 6 else 7
+                // Levels 1–100: Easy (8–14 arrows, grid 6x6 to 8x8)
+                gridWidth = when {
+                    levelId <= 30 -> 6
+                    levelId <= 70 -> 7
+                    else -> 8
+                }
                 gridHeight = gridWidth
-                minArrows = minOf(12, 8 + (levelId - 1) / 12)
-                maxArrows = minOf(12, minArrows + 3)
+                minArrows = minOf(14, 8 + (levelId - 1) / 16)
+                maxArrows = minOf(14, minArrows + 3)
                 minSolutionDepth = minOf(minArrows, 6)
                 minDependencyDepth = 4
                 maxInitialFree = 3
-                maxBends = if (levelId > 15) 1 else 0
+                maxBends = if (levelId > 20) 1 else 0
             }
             Difficulty.NORMAL -> {
-                // Levels 51–100: Normal (12–18 arrows)
-                gridWidth = if (levelId <= 75) 7 else 8
+                // Levels 101–200: Normal (14–20 arrows, grid 8x8 to 9x9)
+                gridWidth = if (levelId <= 150) 8 else 9
                 gridHeight = gridWidth
-                minArrows = minOf(18, 12 + (levelId - 51) / 8)
-                maxArrows = minOf(18, minArrows + 3)
-                minSolutionDepth = minOf(minArrows, 10)
+                minArrows = minOf(20, 14 + (levelId - 101) / 16)
+                maxArrows = minOf(20, minArrows + 3)
+                minSolutionDepth = minOf(minArrows, 11)
                 minDependencyDepth = 7
                 maxInitialFree = 3
                 maxBends = 2
             }
             Difficulty.HARD -> {
-                // Levels 101–150: Hard (18–26 arrows)
-                gridWidth = if (levelId <= 125) 9 else 10
+                // Levels 201–300: Hard (20–28 arrows, grid 10x10 to 11x11)
+                gridWidth = if (levelId <= 250) 10 else 11
                 gridHeight = gridWidth
-                minArrows = minOf(26, 18 + (levelId - 101) / 6)
-                maxArrows = minOf(26, minArrows + 4)
-                minSolutionDepth = minOf(minArrows, 15)
+                minArrows = minOf(28, 20 + (levelId - 201) / 12)
+                maxArrows = minOf(28, minArrows + 4)
+                minSolutionDepth = minOf(minArrows, 16)
                 minDependencyDepth = 10
                 maxInitialFree = 3
                 maxBends = 2
             }
             Difficulty.VERY_HARD -> {
-                // Levels 151–200: Very Hard (26–36 arrows)
-                gridWidth = if (levelId <= 175) 10 else 12
+                // Levels 301–400: Very Hard (28–38 arrows, grid 11x11 to 12x12)
+                gridWidth = if (levelId <= 350) 11 else 12
                 gridHeight = gridWidth
-                minArrows = minOf(36, 26 + (levelId - 151) / 5)
-                maxArrows = minOf(36, minArrows + 5)
+                minArrows = minOf(38, 28 + (levelId - 301) / 10)
+                maxArrows = minOf(38, minArrows + 4)
                 minSolutionDepth = minOf(minArrows, 22)
                 minDependencyDepth = 14
-                maxInitialFree = 3
+                maxInitialFree = 4
                 maxBends = 3
             }
-            Difficulty.EXTREME -> {
-                // Levels 201+: Extreme (36–50 arrows)
-                gridWidth = minOf(14, 12 + (levelId - 201) / 100)
+            Difficulty.MASTER -> {
+                // Levels 401–600: Master (38–50 arrows, grid 12x12 to 13x13)
+                gridWidth = if (levelId <= 500) 12 else 13
                 gridHeight = gridWidth
-                minArrows = minOf(50, 36 + (levelId - 201) / 15)
-                maxArrows = minOf(50, minArrows + 6)
+                minArrows = minOf(50, 38 + (levelId - 401) / 16)
+                maxArrows = minOf(50, minArrows + 5)
                 minSolutionDepth = minOf(minArrows, 30)
                 minDependencyDepth = 18
                 maxInitialFree = 4
                 maxBends = 3
+            }
+            Difficulty.GRANDMASTER -> {
+                // Levels 601–800: Grandmaster (50–64 arrows, grid 13x13 to 14x14)
+                gridWidth = if (levelId <= 700) 13 else 14
+                gridHeight = gridWidth
+                minArrows = minOf(64, 50 + (levelId - 601) / 14)
+                maxArrows = minOf(64, minArrows + 5)
+                minSolutionDepth = minOf(minArrows, 40)
+                minDependencyDepth = 24
+                maxInitialFree = 4
+                maxBends = 3
+            }
+            Difficulty.LEGENDARY -> {
+                // Levels 801–1000+: Legendary (64–80 arrows, grid 14x14 to 15x15 max)
+                gridWidth = if (levelId <= 900) 14 else 15
+                gridHeight = gridWidth
+                minArrows = minOf(80, 64 + minOf(16, (levelId - 801) / 12))
+                maxArrows = minOf(80, minArrows + 6)
+                minSolutionDepth = minOf(minArrows, 50)
+                minDependencyDepth = 30
+                maxInitialFree = 5
+                maxBends = 4
             }
         }
 
