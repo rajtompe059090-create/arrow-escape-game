@@ -74,7 +74,7 @@ object AdManager {
         BANNER_ID
 
     const val INTERSTITIAL_ID =
-        "ca-app-pub-6146868530948467/9603566382"
+        "ca-app-pub-6146868530948467/8122732243"
 
     const val REWARDED_ID =
         "ca-app-pub-6146868530948467/5664321378"
