@@ -247,7 +247,9 @@ fun HomeScreen(
                                 Difficulty.NORMAL -> Color(0xFFEFF6FF)
                                 Difficulty.HARD -> Color(0xFFFEF3C7)
                                 Difficulty.VERY_HARD -> Color(0xFFFFEDD5)
-                                Difficulty.EXTREME -> Color(0xFFFFE4E6)
+                                Difficulty.MASTER -> Color(0xFFF3E8FF)
+                                Difficulty.GRANDMASTER -> Color(0xFFFFE4E6)
+                                Difficulty.LEGENDARY -> Color(0xFFFEF2F2)
                             }
                         ) {
                             Text(
@@ -259,14 +261,16 @@ fun HomeScreen(
                                     Difficulty.NORMAL -> Color(0xFF2563EB)
                                     Difficulty.HARD -> Color(0xFFD97706)
                                     Difficulty.VERY_HARD -> Color(0xFFEA580C)
-                                    Difficulty.EXTREME -> Color(0xFFE11D48)
+                                    Difficulty.MASTER -> Color(0xFF9333EA)
+                                    Difficulty.GRANDMASTER -> Color(0xFFE11D48)
+                                    Difficulty.LEGENDARY -> Color(0xFFDC2626)
                                 },
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
                         }
 
                         Text(
-                            text = "Reward: ₹${difficulty.rewardRupees}.00",
+                            text = "Reward: ₹${"%.2f".format(difficulty.rewardRupees)}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Black,
                             color = Color(0xFF16A34A)

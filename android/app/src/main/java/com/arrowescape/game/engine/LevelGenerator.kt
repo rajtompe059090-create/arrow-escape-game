@@ -383,7 +383,7 @@ object LevelGenerator {
         levelId: Int,
         name: String,
         difficulty: Difficulty,
-        rewardRupees: Int,
+        rewardRupees: Double,
         gridWidth: Int,
         gridHeight: Int,
         targetCount: Int

@@ -1,6 +1,7 @@
 package com.arrowescape.game.engine
 
 import com.arrowescape.game.model.Arrow
+import com.arrowescape.game.model.Difficulty
 import com.arrowescape.game.model.Direction
 import com.arrowescape.game.model.GridPoint
 
