@@ -71,15 +71,14 @@ object AdManager {
     // =========================================================
     // ACTIVE IDS
     //
-    // Banner + Interstitial = GOOGLE TEST
-    // Rewarded + App Open = REAL
+    // All ads now using REAL AdMob Unit IDs
     // =========================================================
 
     private val activeBannerId: String
-        get() = TEST_BANNER_ID
+        get() = BANNER_ID
 
     private val activeInterstitialId: String
-        get() = TEST_INTERSTITIAL_ID
+        get() = INTERSTITIAL_ID
 
     private val activeRewardedId: String
         get() = REWARDED_ID
@@ -795,7 +794,7 @@ object AdManager {
 
                 Log.d(
                     TAG,
-                    "TOP_BANNER_TEST_CREATED"
+                    "TOP_BANNER_CREATED"
                 )
 
                 AdView(context).apply {
@@ -871,7 +870,7 @@ object AdManager {
 
                 Log.d(
                     TAG,
-                    "BOTTOM_BANNER_TEST_CREATED"
+                    "BOTTOM_BANNER_CREATED"
                 )
 
                 AdView(context).apply {
