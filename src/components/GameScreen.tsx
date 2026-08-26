@@ -172,7 +172,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   if (level.difficulty === 'Normal') diffBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
   if (level.difficulty === 'Hard') diffBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
   if (level.difficulty === 'Very Hard') diffBadgeClass = 'bg-orange-50 text-orange-700 border-orange-200';
-  if (level.difficulty === 'Extreme') diffBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+  if (level.difficulty === 'Master') diffBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
+  if (level.difficulty === 'Grandmaster') diffBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+  if (level.difficulty === 'Legendary' || (level.difficulty as string) === 'Extreme') diffBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
 
   return (
     <div

@@ -38,67 +38,48 @@ export function getLevelName(levelId: number, difficulty: Difficulty): string {
  * - VERY HARD (Levels 151–200): 26–36 arrows (depth >= 22, dep >= 14)
  * - EXTREME (Levels 201+): 36–50 arrows (depth >= 30, dep >= 18)
  */
+export function calculateGridDimension(levelId: number): number {
+  if (levelId <= 50) return 6;
+  if (levelId <= 150) return 7;
+  if (levelId <= 250) return 8;
+  if (levelId <= 350) return 9;
+  if (levelId <= 450) return 10;
+  if (levelId <= 550) return 11;
+  if (levelId <= 650) return 12;
+  if (levelId <= 750) return 13;
+  if (levelId <= 900) return 14;
+  return 15;
+}
+
 export function generateLevel(levelId: number): LevelData {
   const difficulty = getLevelDifficulty(levelId);
   const rewardRupees = calculateLevelReward(levelId);
   const name = getLevelName(levelId, difficulty);
 
-  let gridWidth = 7;
-  let gridHeight = 7;
-  let minArrows = 8;
-  let maxArrows = 12;
-  let minSolutionDepth = 6;
-  let minDependencyDepth = 4;
-  let maxInitialFree = 3;
-  let maxBends = 1;
+  const gridDim = calculateGridDimension(levelId);
+  const gridWidth = gridDim;
+  const gridHeight = gridDim;
 
-  if (difficulty === 'Easy') {
-    gridWidth = levelId <= 20 ? 6 : 7;
-    gridHeight = gridWidth;
-    minArrows = Math.min(12, 8 + Math.floor((levelId - 1) / 12));
-    maxArrows = Math.min(12, minArrows + 3);
-    minSolutionDepth = Math.min(minArrows, 6);
-    minDependencyDepth = 4;
-    maxInitialFree = 3;
-    maxBends = levelId > 15 ? 1 : 0;
-  } else if (difficulty === 'Normal') {
-    gridWidth = levelId <= 75 ? 7 : 8;
-    gridHeight = gridWidth;
-    minArrows = Math.min(18, 12 + Math.floor((levelId - 51) / 8));
-    maxArrows = Math.min(18, minArrows + 3);
-    minSolutionDepth = Math.min(minArrows, 10);
-    minDependencyDepth = 7;
-    maxInitialFree = 3;
-    maxBends = 2;
-  } else if (difficulty === 'Hard') {
-    gridWidth = levelId <= 125 ? 9 : 10;
-    gridHeight = gridWidth;
-    minArrows = Math.min(26, 18 + Math.floor((levelId - 101) / 6));
-    maxArrows = Math.min(26, minArrows + 4);
-    minSolutionDepth = Math.min(minArrows, 15);
-    minDependencyDepth = 10;
-    maxInitialFree = 3;
-    maxBends = 2;
-  } else if (difficulty === 'Very Hard') {
-    gridWidth = levelId <= 175 ? 10 : 12;
-    gridHeight = gridWidth;
-    minArrows = Math.min(36, 26 + Math.floor((levelId - 151) / 5));
-    maxArrows = Math.min(36, minArrows + 5);
-    minSolutionDepth = Math.min(minArrows, 22);
-    minDependencyDepth = 14;
-    maxInitialFree = 3;
-    maxBends = 3;
-  } else {
-    // Extreme: 36–50 arrows
-    gridWidth = Math.min(14, 12 + Math.floor((levelId - 201) / 100));
-    gridHeight = gridWidth;
-    minArrows = Math.min(50, 36 + Math.floor((levelId - 201) / 15));
-    maxArrows = Math.min(50, minArrows + 6);
-    minSolutionDepth = Math.min(minArrows, 30);
-    minDependencyDepth = 18;
-    maxInitialFree = 4;
-    maxBends = 3;
+  let minArrows = 8;
+  let maxArrows = 14;
+
+  switch (gridDim) {
+    case 6: minArrows = 8; maxArrows = 14; break;
+    case 7: minArrows = 10; maxArrows = 18; break;
+    case 8: minArrows = 12; maxArrows = 22; break;
+    case 9: minArrows = 15; maxArrows = 27; break;
+    case 10: minArrows = 18; maxArrows = 32; break;
+    case 11: minArrows = 21; maxArrows = 38; break;
+    case 12: minArrows = 24; maxArrows = 44; break;
+    case 13: minArrows = 27; maxArrows = 50; break;
+    case 14: minArrows = 30; maxArrows = 60; break;
+    default: minArrows = 35; maxArrows = 75; break;
   }
+
+  const minSolutionDepth = Math.max(6, Math.floor(minArrows * 0.70));
+  const minDependencyDepth = Math.max(3, Math.floor(minArrows * 0.40));
+  const maxInitialFree = gridDim <= 7 ? 3 : gridDim <= 10 ? 4 : gridDim <= 13 ? 5 : 6;
+  const maxBends = gridDim <= 6 ? (levelId > 20 ? 1 : 0) : gridDim <= 8 ? 2 : gridDim <= 11 ? 3 : 4;
 
   let bestCandidate: Arrow[] | null = null;
   let bestScore = -1;

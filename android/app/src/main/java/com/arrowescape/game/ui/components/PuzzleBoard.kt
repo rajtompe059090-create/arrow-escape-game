@@ -76,12 +76,14 @@ fun PuzzleBoard(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .padding(14.dp)
-                .pointerInput(arrows, escapingArrowIds) {
+                .pointerInput(arrows, escapingArrowIds, gridWidth, gridHeight) {
                     detectTapGestures { tapOffset ->
                         val cellW: Float =
                             size.width / (gridWidth - 1).coerceAtLeast(1).toFloat()
                         val cellH: Float =
                             size.height / (gridHeight - 1).coerceAtLeast(1).toFloat()
+
+                        val hitThreshold = maxOf(cellW * 0.72f, 16.dp.toPx())
 
                         val hit = arrows.findLast { arrow ->
                             if (escapingArrowIds.contains(arrow.id)) {
@@ -93,7 +95,7 @@ fun PuzzleBoard(
                                     val dx = tapOffset.x - px
                                     val dy = tapOffset.y - py
                                     val distance = sqrt(dx * dx + dy * dy)
-                                    distance <= cellW * 0.70f
+                                    distance <= hitThreshold
                                 }
                             }
                         }
@@ -109,7 +111,7 @@ fun PuzzleBoard(
             val cellH: Float =
                 size.height / (gridHeight - 1).coerceAtLeast(1).toFloat()
 
-            val dotRadius = (cellW * 0.07f).coerceIn(1.5.dp.toPx(), 3.dp.toPx())
+            val dotRadius = (cellW * 0.08f).coerceIn(1.2.dp.toPx(), 3.5.dp.toPx())
 
             // --------------------------------
             // GRID DOTS
@@ -130,8 +132,8 @@ fun PuzzleBoard(
             // --------------------------------
             // DRAW ARROWS
             // --------------------------------
-            val baseStrokeWidth = (cellW * 0.16f).coerceIn(2.5.dp.toPx(), 6.dp.toPx())
-            val headLen = (cellW * 0.38f).coerceIn(7.dp.toPx(), 15.dp.toPx())
+            val baseStrokeWidth = (cellW * 0.16f).coerceIn(2.2.dp.toPx(), 6.5.dp.toPx())
+            val headLen = (cellW * 0.38f).coerceIn(5.5.dp.toPx(), 16.dp.toPx())
             val headHalf = headLen * 0.58f
 
             arrows.forEach { arrow ->

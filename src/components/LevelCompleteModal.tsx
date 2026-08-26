@@ -94,7 +94,17 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
           bg: 'bg-orange-50 text-orange-700 border-orange-200',
           icon: <ShieldAlert className="w-3 h-3" />,
         };
-      case 'Extreme':
+      case 'Master':
+        return {
+          bg: 'bg-purple-50 text-purple-700 border-purple-200',
+          icon: <Crown className="w-3 h-3" />,
+        };
+      case 'Grandmaster':
+        return {
+          bg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+          icon: <Crown className="w-3 h-3" />,
+        };
+      case 'Legendary':
         return {
           bg: 'bg-rose-50 text-rose-700 border-rose-200',
           icon: <Crown className="w-3 h-3" />,

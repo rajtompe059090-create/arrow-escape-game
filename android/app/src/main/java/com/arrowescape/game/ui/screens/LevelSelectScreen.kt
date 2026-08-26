@@ -92,7 +92,7 @@ fun LevelSelectScreen(
                         color = Color(0xFF0F172A)
                     )
                     Text(
-                        text = "Unlocked: Level ${uiState.unlockedLevel} • ₹${selectedDifficulty.rewardRupees}/level",
+                        text = "Unlocked: Level ${uiState.unlockedLevel} • ₹${"%.2f".format(selectedDifficulty.rewardRupees)}/level",
                         fontSize = 12.sp,
                         color = Color(0xFF64748B),
                         fontWeight = FontWeight.Medium
@@ -132,7 +132,7 @@ fun LevelSelectScreen(
                                 color = if (isSelected) Color.White else Color(0xFF475569)
                             )
                             Text(
-                                text = "${diff.levelRange} (₹${diff.rewardRupees})",
+                                text = "${diff.levelRange} (₹${"%.2f".format(diff.rewardRupees)})",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = if (isSelected) Color(0xFFE0F2FE) else Color(0xFF94A3B8)

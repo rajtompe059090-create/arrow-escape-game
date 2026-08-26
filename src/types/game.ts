@@ -12,7 +12,7 @@ export interface Arrow {
   color?: string;
 }
 
-export type Difficulty = 'Easy' | 'Normal' | 'Hard' | 'Very Hard' | 'Extreme';
+export type Difficulty = 'Easy' | 'Normal' | 'Hard' | 'Very Hard' | 'Master' | 'Grandmaster' | 'Legendary';
 export type DifficultyTier = Difficulty;
 
 export interface LevelData {
@@ -22,7 +22,7 @@ export interface LevelData {
   gridHeight: number;
   difficulty: Difficulty;
   arrows: Arrow[];
-  rewardRupees: number; // e.g., 2 for 1-50, 3 for 51-100, 5 for 101-150, 10 for 151-200, 15 for 201+
+  rewardRupees: number; // 0.25, 0.50, 0.75, 1.00, 1.25, 1.50, 2.00
 }
 
 export interface EarningTransaction {

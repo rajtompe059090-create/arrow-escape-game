@@ -67,6 +67,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'Very Hard':
         return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'Master':
+        return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'Grandmaster':
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      case 'Legendary':
       case 'Extreme':
         return 'bg-rose-50 text-rose-700 border-rose-200';
       default:

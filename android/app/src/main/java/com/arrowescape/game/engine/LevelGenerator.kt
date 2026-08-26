@@ -22,118 +22,81 @@ object LevelGenerator {
     }
 
     /**
+     * Calculates the playable board dimension (width = height) according to the progression:
+     * - Levels 1–100: 6x6 → gradually increase toward 7x7 (1..50 -> 6, 51..100 -> 7)
+     * - Levels 101–200: 7x7 → 8x8 (101..150 -> 7, 151..200 -> 8)
+     * - Levels 201–300: 8x8 → 9x9 (201..250 -> 8, 251..300 -> 9)
+     * - Levels 301–400: 9x9 → 10x10 (301..350 -> 9, 351..400 -> 10)
+     * - Levels 401–500: 10x10 → 11x11 (401..450 -> 10, 451..500 -> 11)
+     * - Levels 501–600: 11x11 → 12x12 (501..550 -> 11, 551..600 -> 12)
+     * - Levels 601–700: 12x12 → 13x13 (601..650 -> 12, 651..700 -> 13)
+     * - Levels 701–800: 13x13 → 14x14 (701..750 -> 13, 751..800 -> 14)
+     * - Levels 801–1000: 14x14 → 15x15 (801..900 -> 14, 901..1000 -> 15)
+     * - Levels 1001+: 15x15 maximum
+     */
+    fun calculateGridDimension(levelId: Int): Int {
+        return when {
+            levelId <= 50 -> 6
+            levelId <= 150 -> 7
+            levelId <= 250 -> 8
+            levelId <= 350 -> 9
+            levelId <= 450 -> 10
+            levelId <= 550 -> 11
+            levelId <= 650 -> 12
+            levelId <= 750 -> 13
+            levelId <= 900 -> 14
+            else -> 15
+        }
+    }
+
+    /**
      * Generates a deterministic, progressive Arrow Escape level based on level ID and difficulty tier.
      * Guaranteed 100% solvable with verified solver solution depth, dependency depth, and branching complexity.
-     *
-     * Arrow Counts:
-     * - EASY: 8–12 arrows (depth >= 6, dep >= 4)
-     * - NORMAL: 12–18 arrows (depth >= 10, dep >= 7)
-     * - HARD: 18–26 arrows (depth >= 15, dep >= 10)
-     * - VERY HARD: 26–36 arrows (depth >= 22, dep >= 14)
-     * - EXTREME: 36–50 arrows (depth >= 30, dep >= 18)
      */
     fun generateLevel(levelId: Int): Level {
         val difficulty = Difficulty.fromLevel(levelId)
         val rewardRupees = difficulty.rewardRupees
         val name = getLevelName(levelId, difficulty)
 
-        var gridWidth: Int
-        var gridHeight: Int
-        var minArrows: Int
-        var maxArrows: Int
-        var minSolutionDepth: Int
-        var minDependencyDepth: Int
-        var maxInitialFree: Int
-        var maxBends: Int
+        val gridDim = calculateGridDimension(levelId)
+        val gridWidth = gridDim
+        val gridHeight = gridDim
 
-        when (difficulty) {
-            Difficulty.EASY -> {
-                // Levels 1–100: Easy (8–14 arrows, grid 6x6 to 8x8)
-                gridWidth = when {
-                    levelId <= 30 -> 6
-                    levelId <= 70 -> 7
-                    else -> 8
-                }
-                gridHeight = gridWidth
-                minArrows = minOf(14, 8 + (levelId - 1) / 16)
-                maxArrows = minOf(14, minArrows + 3)
-                minSolutionDepth = minOf(minArrows, 6)
-                minDependencyDepth = 4
-                maxInitialFree = 3
-                maxBends = if (levelId > 20) 1 else 0
-            }
-            Difficulty.NORMAL -> {
-                // Levels 101–200: Normal (14–20 arrows, grid 8x8 to 9x9)
-                gridWidth = if (levelId <= 150) 8 else 9
-                gridHeight = gridWidth
-                minArrows = minOf(20, 14 + (levelId - 101) / 16)
-                maxArrows = minOf(20, minArrows + 3)
-                minSolutionDepth = minOf(minArrows, 11)
-                minDependencyDepth = 7
-                maxInitialFree = 3
-                maxBends = 2
-            }
-            Difficulty.HARD -> {
-                // Levels 201–300: Hard (20–28 arrows, grid 10x10 to 11x11)
-                gridWidth = if (levelId <= 250) 10 else 11
-                gridHeight = gridWidth
-                minArrows = minOf(28, 20 + (levelId - 201) / 12)
-                maxArrows = minOf(28, minArrows + 4)
-                minSolutionDepth = minOf(minArrows, 16)
-                minDependencyDepth = 10
-                maxInitialFree = 3
-                maxBends = 2
-            }
-            Difficulty.VERY_HARD -> {
-                // Levels 301–400: Very Hard (28–38 arrows, grid 11x11 to 12x12)
-                gridWidth = if (levelId <= 350) 11 else 12
-                gridHeight = gridWidth
-                minArrows = minOf(38, 28 + (levelId - 301) / 10)
-                maxArrows = minOf(38, minArrows + 4)
-                minSolutionDepth = minOf(minArrows, 22)
-                minDependencyDepth = 14
-                maxInitialFree = 4
-                maxBends = 3
-            }
-            Difficulty.MASTER -> {
-                // Levels 401–600: Master (38–50 arrows, grid 12x12 to 13x13)
-                gridWidth = if (levelId <= 500) 12 else 13
-                gridHeight = gridWidth
-                minArrows = minOf(50, 38 + (levelId - 401) / 16)
-                maxArrows = minOf(50, minArrows + 5)
-                minSolutionDepth = minOf(minArrows, 30)
-                minDependencyDepth = 18
-                maxInitialFree = 4
-                maxBends = 3
-            }
-            Difficulty.GRANDMASTER -> {
-                // Levels 601–800: Grandmaster (50–64 arrows, grid 13x13 to 14x14)
-                gridWidth = if (levelId <= 700) 13 else 14
-                gridHeight = gridWidth
-                minArrows = minOf(64, 50 + (levelId - 601) / 14)
-                maxArrows = minOf(64, minArrows + 5)
-                minSolutionDepth = minOf(minArrows, 40)
-                minDependencyDepth = 24
-                maxInitialFree = 4
-                maxBends = 3
-            }
-            Difficulty.LEGENDARY -> {
-                // Levels 801–1000+: Legendary (64–80 arrows, grid 14x14 to 15x15 max)
-                gridWidth = if (levelId <= 900) 14 else 15
-                gridHeight = gridWidth
-                minArrows = minOf(80, 64 + minOf(16, (levelId - 801) / 12))
-                maxArrows = minOf(80, minArrows + 6)
-                minSolutionDepth = minOf(minArrows, 50)
-                minDependencyDepth = 30
-                maxInitialFree = 5
-                maxBends = 4
-            }
+        // Dynamic arrow count scaling based on grid dimensions:
+        // 6x6: 8–14, 7x7: 10–18, 8x8: 12–22, 9x9: 15–27, 10x10: 18–32,
+        // 11x11: 21–38, 12x12: 24–44, 13x13: 27–50, 14x14: 30–60, 15x15: 35–75
+        val (minArrows, maxArrows) = when (gridDim) {
+            6 -> Pair(8, 14)
+            7 -> Pair(10, 18)
+            8 -> Pair(12, 22)
+            9 -> Pair(15, 27)
+            10 -> Pair(18, 32)
+            11 -> Pair(21, 38)
+            12 -> Pair(24, 44)
+            13 -> Pair(27, 50)
+            14 -> Pair(30, 60)
+            else -> Pair(35, 75)
+        }
+
+        val minSolutionDepth = (minArrows * 0.70).toInt().coerceAtLeast(6)
+        val minDependencyDepth = (minArrows * 0.40).toInt().coerceAtLeast(3)
+        val maxInitialFree = when {
+            gridDim <= 7 -> 3
+            gridDim <= 10 -> 4
+            gridDim <= 13 -> 5
+            else -> 6
+        }
+        val maxBends = when {
+            gridDim <= 6 -> if (levelId > 20) 1 else 0
+            gridDim <= 8 -> 2
+            gridDim <= 11 -> 3
+            else -> 4
         }
 
         var bestCandidate: List<Arrow>? = null
         var bestScore = -1
 
-        val maxAttempts = 200
+        val maxAttempts = 150
         for (attempt in 0 until maxAttempts) {
             val seed = (levelId.toLong() * 2654435761L + attempt.toLong() * 1013904223L + 73L)
             val random = Random(seed)
@@ -158,7 +121,6 @@ object LevelGenerator {
                         metrics.dependencyDepth >= minDependencyDepth &&
                         metrics.initialFreeCount <= maxInitialFree
                     ) {
-                        // Meets all strict criteria!
                         return Level(
                             id = levelId,
                             name = name,
@@ -232,12 +194,11 @@ object LevelGenerator {
         }
 
         val directions = Direction.values()
-
-        // Place arrows iteratively
+        val maxFailureStreak = (gridWidth * 25).coerceAtLeast(150)
         var failureStreak = 0
-        while (arrows.size < targetCount && failureStreak < 120) {
+
+        while (arrows.size < targetCount && failureStreak < maxFailureStreak) {
             failureStreak++
-            var placed = false
 
             // Try to place an arrow that either blocks an existing arrow (reverse dependency)
             // or starts a new branch.
@@ -260,7 +221,6 @@ object LevelGenerator {
             var candidateHead: GridPoint? = null
 
             if (targetExisting != null) {
-                // Find a point in the escape path or vicinity of targetExisting
                 val exHead = targetExisting.points.last()
                 var exDx = 0
                 var exDy = 0
@@ -284,14 +244,12 @@ object LevelGenerator {
                 }
 
                 if (rayPoints.isNotEmpty()) {
-                    // Pick a point on this ray to be crossed by the new arrow
                     val blockPt = rayPoints[random.nextInt(rayPoints.size)]
                     candidateHead = blockPt
                 }
             }
 
             if (candidateHead == null || !isFree(candidateHead.x, candidateHead.y)) {
-                // Pick random free cell
                 val freeCells = ArrayList<GridPoint>()
                 for (y in 0 until gridHeight) {
                     for (x in 0 until gridWidth) {
@@ -310,7 +268,6 @@ object LevelGenerator {
             val points = ArrayList<GridPoint>()
 
             if (!useBend || length < 2) {
-                // Straight arrow
                 var valid = true
                 for (s in 0 until length) {
                     val px = candidateHead.x - dx * s
@@ -326,7 +283,6 @@ object LevelGenerator {
                     points.add(candidateHead)
                 }
             } else {
-                // Bent arrow (1 corner)
                 val len1 = 1 + random.nextInt(2)
                 val len2 = 1 + random.nextInt(2)
                 val perpDirs = if (dx != 0) listOf(GridPoint(0, 1), GridPoint(0, -1)) else listOf(GridPoint(1, 0), GridPoint(-1, 0))
@@ -363,14 +319,12 @@ object LevelGenerator {
                     headDirection = dir
                 )
 
-                // Test if adding this arrow preserves solvability
                 val testList = ArrayList(arrows)
                 testList.add(newArrow)
 
                 if (PuzzleEngine.isLevelSolvable(testList, gridWidth, gridHeight)) {
                     markArrow(newArrow, true)
                     arrows.add(newArrow)
-                    placed = true
                     failureStreak = 0
                 }
             }
@@ -395,7 +349,7 @@ object LevelGenerator {
             return x in 0 until gridWidth && y in 0 until gridHeight && !occupied.contains("$x,$y")
         }
 
-        var currentRing = 1
+        var currentRing = 0
         while (arrows.size < targetCount && currentRing < gridWidth / 2) {
             val minX = currentRing
             val maxX = gridWidth - 1 - currentRing
@@ -405,70 +359,80 @@ object LevelGenerator {
             if (maxX - minX >= 2 && maxY - minY >= 2) {
                 // Top row arrow (pointing right)
                 if (isCellAvailable(minX, minY) && isCellAvailable(maxX - 1, minY)) {
-                    arrows.add(
-                        Arrow(
-                            id = "a_${levelId}_${arrows.size + 1}",
-                            points = listOf(GridPoint(minX, minY), GridPoint(maxX - 1, minY)),
-                            headDirection = Direction.RIGHT
-                        )
+                    val newArrow = Arrow(
+                        id = "a_${levelId}_${arrows.size + 1}",
+                        points = listOf(GridPoint(minX, minY), GridPoint(maxX - 1, minY)),
+                        headDirection = Direction.RIGHT
                     )
+                    arrows.add(newArrow)
                     for (x in minX until maxX) occupied.add("$x,$minY")
                 }
 
                 // Right col arrow (pointing down, blocks top row exit)
                 if (isCellAvailable(maxX, minY) && isCellAvailable(maxX, maxY - 1)) {
-                    arrows.add(
-                        Arrow(
-                            id = "a_${levelId}_${arrows.size + 1}",
-                            points = listOf(GridPoint(maxX, minY), GridPoint(maxX, maxY - 1)),
-                            headDirection = Direction.DOWN
-                        )
+                    val newArrow = Arrow(
+                        id = "a_${levelId}_${arrows.size + 1}",
+                        points = listOf(GridPoint(maxX, minY), GridPoint(maxX, maxY - 1)),
+                        headDirection = Direction.DOWN
                     )
+                    arrows.add(newArrow)
                     for (y in minY until maxY) occupied.add("$maxX,$y")
                 }
 
                 // Bottom row arrow (pointing left, blocks right col exit)
                 if (isCellAvailable(maxX, maxY) && isCellAvailable(minX + 1, maxY)) {
-                    arrows.add(
-                        Arrow(
-                            id = "a_${levelId}_${arrows.size + 1}",
-                            points = listOf(GridPoint(maxX, maxY), GridPoint(minX + 1, maxY)),
-                            headDirection = Direction.LEFT
-                        )
+                    val newArrow = Arrow(
+                        id = "a_${levelId}_${arrows.size + 1}",
+                        points = listOf(GridPoint(maxX, maxY), GridPoint(minX + 1, maxY)),
+                        headDirection = Direction.LEFT
                     )
+                    arrows.add(newArrow)
                     for (x in minX + 1..maxX) occupied.add("$x,$maxY")
                 }
 
                 // Left col arrow (pointing up, blocks bottom row exit)
                 if (isCellAvailable(minX, maxY) && isCellAvailable(minX, minY + 1)) {
-                    arrows.add(
-                        Arrow(
-                            id = "a_${levelId}_${arrows.size + 1}",
-                            points = listOf(GridPoint(minX, maxY), GridPoint(minX, minY + 1)),
-                            headDirection = Direction.UP
-                        )
+                    val newArrow = Arrow(
+                        id = "a_${levelId}_${arrows.size + 1}",
+                        points = listOf(GridPoint(minX, maxY), GridPoint(minX, minY + 1)),
+                        headDirection = Direction.UP
                     )
+                    arrows.add(newArrow)
                     for (y in minY + 1..maxY) occupied.add("$minX,$y")
                 }
             }
-            currentRing += 2
+            currentRing += 1
         }
 
-        // Fill outer exit lines if more arrows are needed
+        // Fill remaining outer exit lanes if more arrows are needed
         var x = 0
         while (x < gridWidth && arrows.size < targetCount) {
             if (isCellAvailable(x, 0) && isCellAvailable(x, 1)) {
-                arrows.add(
-                    Arrow(
-                        id = "a_${levelId}_${arrows.size + 1}",
-                        points = listOf(GridPoint(x, 1), GridPoint(x, 0)),
-                        headDirection = Direction.UP
-                    )
+                val newArrow = Arrow(
+                    id = "a_${levelId}_${arrows.size + 1}",
+                    points = listOf(GridPoint(x, 1), GridPoint(x, 0)),
+                    headDirection = Direction.UP
                 )
+                arrows.add(newArrow)
                 occupied.add("$x,0")
                 occupied.add("$x,1")
             }
             x += 2
+        }
+
+        var y = 0
+        while (y < gridHeight && arrows.size < targetCount) {
+            if (isCellAvailable(0, y) && isCellAvailable(1, y)) {
+                val newArrow = Arrow(
+                    id = "a_${levelId}_${arrows.size + 1}",
+                    points = listOf(GridPoint(1, y), GridPoint(0, y)),
+                    headDirection = Direction.LEFT
+                )
+                arrows.add(newArrow)
+                occupied.add("0,$y")
+                occupied.add("1,$y")
+            }
+            y += 2
         }
 
         return Level(

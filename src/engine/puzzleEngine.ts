@@ -238,16 +238,20 @@ export function isLevelSolvable(level: LevelData): boolean {
 
 /**
  * Returns level difficulty tier based on continuous level ID:
- * Levels 1–50 = Easy
- * Levels 51–100 = Normal
- * Levels 101–150 = Hard
- * Levels 151–200 = Very Hard
- * Levels 201+ = Extreme
+ * Levels 1–100 = Easy
+ * Levels 101–200 = Normal
+ * Levels 201–300 = Hard
+ * Levels 301–400 = Very Hard
+ * Levels 401–600 = Master
+ * Levels 601–800 = Grandmaster
+ * Levels 801–1000+ = Legendary
  */
 export function getLevelDifficulty(levelId: number): Difficulty {
-  if (levelId <= 50) return 'Easy';
-  if (levelId <= 100) return 'Normal';
-  if (levelId <= 150) return 'Hard';
-  if (levelId <= 200) return 'Very Hard';
-  return 'Extreme';
+  if (levelId <= 100) return 'Easy';
+  if (levelId <= 200) return 'Normal';
+  if (levelId <= 300) return 'Hard';
+  if (levelId <= 400) return 'Very Hard';
+  if (levelId <= 600) return 'Master';
+  if (levelId <= 800) return 'Grandmaster';
+  return 'Legendary';
 }

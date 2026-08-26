@@ -12,11 +12,13 @@ export const WalletModal: React.FC<WalletModalProps> = ({ stats, onClose }) => {
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HISTORY'>('OVERVIEW');
 
   const tiers = [
-    { range: 'Levels 1 – 50', rate: '₹2.00 / lvl', difficulty: 'Easy', active: stats.unlockedLevel <= 50 },
-    { range: 'Levels 51 – 100', rate: '₹3.00 / lvl', difficulty: 'Normal', active: stats.unlockedLevel > 50 && stats.unlockedLevel <= 100 },
-    { range: 'Levels 101 – 150', rate: '₹5.00 / lvl', difficulty: 'Hard', active: stats.unlockedLevel > 100 && stats.unlockedLevel <= 150 },
-    { range: 'Levels 151 – 200', rate: '₹10.00 / lvl', difficulty: 'Very Hard', active: stats.unlockedLevel > 150 && stats.unlockedLevel <= 200 },
-    { range: 'Levels 201+', rate: '₹15.00 / lvl', difficulty: 'Extreme', active: stats.unlockedLevel > 200 },
+    { range: 'Levels 1 – 100', rate: '₹0.25 / lvl', difficulty: 'Easy', active: stats.unlockedLevel <= 100 },
+    { range: 'Levels 101 – 200', rate: '₹0.50 / lvl', difficulty: 'Normal', active: stats.unlockedLevel > 100 && stats.unlockedLevel <= 200 },
+    { range: 'Levels 201 – 300', rate: '₹0.75 / lvl', difficulty: 'Hard', active: stats.unlockedLevel > 200 && stats.unlockedLevel <= 300 },
+    { range: 'Levels 301 – 400', rate: '₹1.00 / lvl', difficulty: 'Very Hard', active: stats.unlockedLevel > 300 && stats.unlockedLevel <= 400 },
+    { range: 'Levels 401 – 600', rate: '₹1.25 / lvl', difficulty: 'Master', active: stats.unlockedLevel > 400 && stats.unlockedLevel <= 600 },
+    { range: 'Levels 601 – 800', rate: '₹1.50 / lvl', difficulty: 'Grandmaster', active: stats.unlockedLevel > 600 && stats.unlockedLevel <= 800 },
+    { range: 'Levels 801+', rate: '₹2.00 / lvl', difficulty: 'Legendary', active: stats.unlockedLevel > 800 },
   ];
 
   const formatDate = (timestamp: number) => {
