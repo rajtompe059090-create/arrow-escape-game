@@ -1766,6 +1766,26 @@ fun LevelCompleteDialog(
                     }
                 }
 
+                // Diagnostic Interstitial Error display (temporary for debugging)
+                val interstitialErr = com.arrowescape.game.ads.AdManager.interstitialDiagnosticError
+                if (interstitialErr != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFEF2F2),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = interstitialErr,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFFDC2626),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Button(

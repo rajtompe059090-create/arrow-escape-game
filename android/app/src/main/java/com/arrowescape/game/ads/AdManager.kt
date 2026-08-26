@@ -4,10 +4,24 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import android.view.ViewGroup
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdListener
@@ -96,6 +110,16 @@ object AdManager {
     private var interstitialAd: InterstitialAd? = null
 
     private var isInterstitialLoading = false
+
+    // Diagnostic error states for live debugging
+    var topBannerDiagnosticError by mutableStateOf<String?>(null)
+        private set
+
+    var bottomBannerDiagnosticError by mutableStateOf<String?>(null)
+        private set
+
+    var interstitialDiagnosticError by mutableStateOf<String?>(null)
+        private set
 
     @Volatile
     private var rewardedAd: RewardedAd? = null
@@ -196,6 +220,7 @@ object AdManager {
 
                     interstitialAd = ad
                     isInterstitialLoading = false
+                    interstitialDiagnosticError = null
 
                     Log.d(
                         TAG,
@@ -209,6 +234,7 @@ object AdManager {
 
                     interstitialAd = null
                     isInterstitialLoading = false
+                    interstitialDiagnosticError = "Interstitial Error: code=${error.code}, message=${error.message}, domain=${error.domain}"
 
                     Log.e(
                         TAG,
@@ -305,6 +331,7 @@ object AdManager {
                 override fun onAdFailedToShowFullScreenContent(
                     error: AdError
                 ) {
+                    interstitialDiagnosticError = "Interstitial Error: code=${error.code}, message=${error.message}, domain=${error.domain}"
 
                     Log.e(
                         TAG,
@@ -330,6 +357,7 @@ object AdManager {
                 ad.show(activity)
 
             } catch (e: Exception) {
+                interstitialDiagnosticError = "Interstitial Error: code=-1, message=${e.message ?: "Exception"}, domain=AndroidRuntime"
 
                 Log.e(
                     TAG,
@@ -777,153 +805,213 @@ object AdManager {
 
     // =========================================================
     // TOP BANNER
-    // GOOGLE TEST
     // =========================================================
 
     @Composable
     fun TopBannerView(
         modifier: Modifier = Modifier
     ) {
+        var localError by remember { mutableStateOf<String?>(null) }
 
-        AndroidView(
+        Box(
             modifier = modifier
                 .fillMaxWidth()
                 .wrapContentHeight(),
+            contentAlignment = Alignment.Center
+        ) {
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
 
-            factory = { context ->
-
-                Log.d(
-                    TAG,
-                    "TOP_BANNER_CREATED"
-                )
-
-                AdView(context).apply {
-
-                    setAdSize(
-                        getAdaptiveAdSize(context)
-                    )
-
-                    adUnitId =
-                        activeBannerId
-
-                    layoutParams =
-                        ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-
-                    adListener =
-                        object : AdListener() {
-
-                            override fun onAdLoaded() {
-
-                                Log.d(
-                                    TAG,
-                                    "TOP_BANNER_LOADED"
-                                )
-                            }
-
-                            override fun onAdFailedToLoad(
-                                error: LoadAdError
-                            ) {
-
-                                Log.e(
-                                    TAG,
-                                    "TOP_BANNER_FAILED: " +
-                                            "code=${error.code}, " +
-                                            "message=${error.message}, " +
-                                            "domain=${error.domain}, " +
-                                            "responseInfo=${error.responseInfo}"
-                                )
-                            }
-                        }
+                factory = { context ->
 
                     Log.d(
                         TAG,
-                        "TOP_BANNER_LOADING: $activeBannerId"
+                        "TOP_BANNER_CREATED"
                     )
 
-                    loadAd(
-                        AdRequest.Builder().build()
+                    AdView(context).apply {
+
+                        setAdSize(
+                            getAdaptiveAdSize(context)
+                        )
+
+                        adUnitId =
+                            activeBannerId
+
+                        layoutParams =
+                            ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT
+                            )
+
+                        adListener =
+                            object : AdListener() {
+
+                                override fun onAdLoaded() {
+                                    localError = null
+                                    topBannerDiagnosticError = null
+
+                                    Log.d(
+                                        TAG,
+                                        "TOP_BANNER_LOADED"
+                                    )
+                                }
+
+                                override fun onAdFailedToLoad(
+                                    error: LoadAdError
+                                ) {
+                                    val errStr = "Banner Error: code=${error.code}, message=${error.message}, domain=${error.domain}"
+                                    localError = errStr
+                                    topBannerDiagnosticError = errStr
+
+                                    Log.e(
+                                        TAG,
+                                        "TOP_BANNER_FAILED: " +
+                                                "code=${error.code}, " +
+                                                "message=${error.message}, " +
+                                                "domain=${error.domain}, " +
+                                                "responseInfo=${error.responseInfo}"
+                                    )
+                                }
+                            }
+
+                        Log.d(
+                            TAG,
+                            "TOP_BANNER_LOADING: $activeBannerId"
+                        )
+
+                        loadAd(
+                            AdRequest.Builder().build()
+                        )
+                    }
+                }
+            )
+
+            if (localError != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFEF2F2))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = localError ?: "",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFDC2626),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
-        )
+        }
     }
 
     // =========================================================
     // BOTTOM BANNER
-    // GOOGLE TEST
     // =========================================================
 
     @Composable
     fun BottomBannerView(
         modifier: Modifier = Modifier
     ) {
+        var localError by remember { mutableStateOf<String?>(null) }
 
-        AndroidView(
+        Box(
             modifier = modifier
                 .fillMaxWidth()
                 .wrapContentHeight(),
+            contentAlignment = Alignment.Center
+        ) {
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
 
-            factory = { context ->
-
-                Log.d(
-                    TAG,
-                    "BOTTOM_BANNER_CREATED"
-                )
-
-                AdView(context).apply {
-
-                    setAdSize(
-                        getAdaptiveAdSize(context)
-                    )
-
-                    adUnitId =
-                        activeBannerId
-
-                    layoutParams =
-                        ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-
-                    adListener =
-                        object : AdListener() {
-
-                            override fun onAdLoaded() {
-
-                                Log.d(
-                                    TAG,
-                                    "BOTTOM_BANNER_LOADED"
-                                )
-                            }
-
-                            override fun onAdFailedToLoad(
-                                error: LoadAdError
-                            ) {
-
-                                Log.e(
-                                    TAG,
-                                    "BOTTOM_BANNER_FAILED: " +
-                                            "code=${error.code}, " +
-                                            "message=${error.message}, " +
-                                            "domain=${error.domain}, " +
-                                            "responseInfo=${error.responseInfo}"
-                                )
-                            }
-                        }
+                factory = { context ->
 
                     Log.d(
                         TAG,
-                        "BOTTOM_BANNER_LOADING: $activeBannerId"
+                        "BOTTOM_BANNER_CREATED"
                     )
 
-                    loadAd(
-                        AdRequest.Builder().build()
+                    AdView(context).apply {
+
+                        setAdSize(
+                            getAdaptiveAdSize(context)
+                        )
+
+                        adUnitId =
+                            activeBannerId
+
+                        layoutParams =
+                            ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT
+                            )
+
+                        adListener =
+                            object : AdListener() {
+
+                                override fun onAdLoaded() {
+                                    localError = null
+                                    bottomBannerDiagnosticError = null
+
+                                    Log.d(
+                                        TAG,
+                                        "BOTTOM_BANNER_LOADED"
+                                    )
+                                }
+
+                                override fun onAdFailedToLoad(
+                                    error: LoadAdError
+                                ) {
+                                    val errStr = "Banner Error: code=${error.code}, message=${error.message}, domain=${error.domain}"
+                                    localError = errStr
+                                    bottomBannerDiagnosticError = errStr
+
+                                    Log.e(
+                                        TAG,
+                                        "BOTTOM_BANNER_FAILED: " +
+                                                "code=${error.code}, " +
+                                                "message=${error.message}, " +
+                                                "domain=${error.domain}, " +
+                                                "responseInfo=${error.responseInfo}"
+                                    )
+                                }
+                            }
+
+                        Log.d(
+                            TAG,
+                            "BOTTOM_BANNER_LOADING: $activeBannerId"
+                        )
+
+                        loadAd(
+                            AdRequest.Builder().build()
+                        )
+                    }
+                }
+            )
+
+            if (localError != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFEF2F2))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = localError ?: "",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFDC2626),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
-        )
+        }
     }
 }
