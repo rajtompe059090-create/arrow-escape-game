@@ -181,7 +181,7 @@ object AdManager {
 
         Log.d(
             TAG,
-            "INTERSTITIAL_TEST_LOADING: $activeInterstitialId"
+            "INTERSTITIAL_LOADING: $activeInterstitialId"
         )
 
         InterstitialAd.load(
@@ -200,7 +200,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "INTERSTITIAL_TEST_LOADED"
+                        "INTERSTITIAL_LOADED"
                     )
                 }
 
@@ -213,7 +213,7 @@ object AdManager {
 
                     Log.e(
                         TAG,
-                        "INTERSTITIAL_TEST_LOAD_FAILED: " +
+                        "INTERSTITIAL_LOAD_FAILED: " +
                                 "code=${error.code}, " +
                                 "message=${error.message}, " +
                                 "domain=${error.domain}, " +
@@ -233,7 +233,10 @@ object AdManager {
             activity.isFinishing ||
             activity.isDestroyed
         ) {
-
+            Log.w(
+                TAG,
+                "INTERSTITIAL_SHOW_FAILED: Activity is finishing or destroyed."
+            )
             onAdClosed()
             return
         }
@@ -244,7 +247,7 @@ object AdManager {
 
             Log.w(
                 TAG,
-                "INTERSTITIAL_TEST_NOT_READY"
+                "INTERSTITIAL_SHOW_FAILED: Ad not ready yet, continuing level completion flow."
             )
 
             loadInterstitial(
@@ -280,7 +283,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "INTERSTITIAL_TEST_SHOWED"
+                        "INTERSTITIAL_SHOWING"
                     )
                 }
 
@@ -288,7 +291,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "INTERSTITIAL_TEST_DISMISSED"
+                        "INTERSTITIAL_DISMISSED"
                     )
 
                     interstitialAd = null
@@ -306,7 +309,7 @@ object AdManager {
 
                     Log.e(
                         TAG,
-                        "INTERSTITIAL_TEST_SHOW_FAILED: " +
+                        "INTERSTITIAL_SHOW_FAILED: " +
                                 "code=${error.code}, " +
                                 "message=${error.message}"
                     )
@@ -331,7 +334,7 @@ object AdManager {
 
                 Log.e(
                     TAG,
-                    "INTERSTITIAL_TEST_SHOW_EXCEPTION: ${e.message}",
+                    "INTERSTITIAL_SHOW_FAILED: exception=${e.message}",
                     e
                 )
 
@@ -817,7 +820,7 @@ object AdManager {
 
                                 Log.d(
                                     TAG,
-                                    "TOP_BANNER_TEST_LOADED"
+                                    "TOP_BANNER_LOADED"
                                 )
                             }
 
@@ -827,7 +830,7 @@ object AdManager {
 
                                 Log.e(
                                     TAG,
-                                    "TOP_BANNER_TEST_FAILED: " +
+                                    "TOP_BANNER_FAILED: " +
                                             "code=${error.code}, " +
                                             "message=${error.message}, " +
                                             "domain=${error.domain}, " +
@@ -838,7 +841,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "TOP_BANNER_TEST_LOADING: $activeBannerId"
+                        "TOP_BANNER_LOADING: $activeBannerId"
                     )
 
                     loadAd(
@@ -893,7 +896,7 @@ object AdManager {
 
                                 Log.d(
                                     TAG,
-                                    "BOTTOM_BANNER_TEST_LOADED"
+                                    "BOTTOM_BANNER_LOADED"
                                 )
                             }
 
@@ -903,7 +906,7 @@ object AdManager {
 
                                 Log.e(
                                     TAG,
-                                    "BOTTOM_BANNER_TEST_FAILED: " +
+                                    "BOTTOM_BANNER_FAILED: " +
                                             "code=${error.code}, " +
                                             "message=${error.message}, " +
                                             "domain=${error.domain}, " +
@@ -914,7 +917,7 @@ object AdManager {
 
                     Log.d(
                         TAG,
-                        "BOTTOM_BANNER_TEST_LOADING: $activeBannerId"
+                        "BOTTOM_BANNER_LOADING: $activeBannerId"
                     )
 
                     loadAd(
