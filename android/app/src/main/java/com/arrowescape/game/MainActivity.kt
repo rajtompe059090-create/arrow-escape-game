@@ -22,6 +22,7 @@ import com.arrowescape.game.ads.AdManager
 import com.arrowescape.game.data.UserPreferencesRepository
 import com.arrowescape.game.sound.SoundManager
 import com.arrowescape.game.ui.components.DailyRewardDialog
+import com.arrowescape.game.ui.components.ProfileDialog
 import com.arrowescape.game.ui.components.RewardsDialog
 import com.arrowescape.game.ui.components.SettingsDialog
 import com.arrowescape.game.ui.components.SupportDialog
@@ -99,6 +100,7 @@ fun ArrowEscapeMainApp(
     var currentScreen by remember { mutableStateOf(AppScreen.HOME) }
 
     // Dialog States
+    var showProfileDialog by remember { mutableStateOf(false) }
     var showWalletDialog by remember { mutableStateOf(false) }
     var showWithdrawDialog by remember { mutableStateOf(false) }
     var showRewardsDialog by remember { mutableStateOf(false) }
@@ -110,6 +112,7 @@ fun ArrowEscapeMainApp(
     // Handle system back navigation
     BackHandler {
         when {
+            showProfileDialog -> showProfileDialog = false
             showSupportDialog -> showSupportDialog = false
             showWithdrawDialog -> showWithdrawDialog = false
             showWalletDialog -> showWalletDialog = false
@@ -149,6 +152,9 @@ fun ArrowEscapeMainApp(
                 },
                 onOpenSettings = {
                     showSettingsDialog = true
+                },
+                onOpenProfile = {
+                    showProfileDialog = true
                 },
                 onOpenSupport = {
                     showSupportDialog = true
@@ -258,6 +264,19 @@ fun ArrowEscapeMainApp(
         WeeklyDashboardDialog(
             uiState = uiState,
             onDismiss = { showWeeklyDashboardDialog = false }
+        )
+    }
+
+    if (showProfileDialog) {
+        ProfileDialog(
+            uiState = uiState,
+            onUpdateProfile = { displayName, username, upiId, isRegistered ->
+                viewModel.updateProfile(displayName, username, upiId, isRegistered)
+            },
+            onResetProgress = {
+                viewModel.resetAllProgress()
+            },
+            onDismiss = { showProfileDialog = false }
         )
     }
 

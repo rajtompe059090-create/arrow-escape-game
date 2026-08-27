@@ -1881,3 +1881,824 @@ fun GameOverDialog(
         }
     }
 }
+
+// ==========================================
+// 10. PROFILE & ACCOUNT DIALOG
+// ==========================================
+@Composable
+fun ProfileDialog(
+    uiState: GameUiState,
+    onUpdateProfile: (displayName: String, username: String, upiId: String, isRegistered: Boolean) -> Unit,
+    onResetProgress: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var isEditingName by remember { mutableStateOf(false) }
+    var editName by remember { mutableStateOf(uiState.displayName) }
+    var isEditingUpi by remember { mutableStateOf(false) }
+    var editUpi by remember { mutableStateOf(uiState.upiId) }
+
+    var showAuthForm by remember { mutableStateOf(false) }
+    var authMode by remember { mutableStateOf(0) } // 0: Register, 1: Login
+    var authUsername by remember { mutableStateOf("") }
+    var authPassword by remember { mutableStateOf("") }
+    var authError by remember { mutableStateOf<String?>(null) }
+    var authSuccess by remember { mutableStateOf<String?>(null) }
+
+    var showResetConfirm by remember { mutableStateOf(false) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = Color.White,
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFF2563EB),
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(Color(0xFF3B82F6), Color(0xFF4F46E5))
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = (uiState.displayName.takeIf { it.isNotEmpty() }?.take(1) ?: "P").uppercase(),
+                                    color = Color.White,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = uiState.displayName,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0F172A)
+                                )
+                                if (uiState.isRegistered) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFECFDF5)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.CheckCircle,
+                                                contentDescription = null,
+                                                tint = Color(0xFF059669),
+                                                modifier = Modifier.size(11.dp)
+                                            )
+                                            Text(
+                                                text = "Verified",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF065F46)
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFF1F5F9)
+                                    ) {
+                                        Text(
+                                            text = "Guest",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF64748B),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = "@${uiState.username}",
+                                fontSize = 11.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                    }
+                    IconButton(onClick = {
+                        SoundManager.playTap()
+                        onDismiss()
+                    }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Balance Card Banner
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = Color(0xFF0F172A),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "WALLET BALANCE",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF94A3B8),
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "₹${"%.2f".format(uiState.walletBalance)}",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF34D399)
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "TOTAL EARNINGS",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF94A3B8),
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "₹${"%.2f".format(uiState.totalEarnings)}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // User Identity & Codes Details
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = Color(0xFFF8FAFC),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Game UID
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "GAME UID / USER CODE",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF94A3B8),
+                                    letterSpacing = 0.5.sp
+                                )
+                                Text(
+                                    text = uiState.uid,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color.White,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                modifier = Modifier.clickable {
+                                    SoundManager.playTap()
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("Game UID", uiState.uid)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "Game UID copied!", Toast.LENGTH_SHORT).show()
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color(0xFF475569), modifier = Modifier.size(12.dp))
+                                    Text(text = "Copy", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                                }
+                            }
+                        }
+
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
+
+                        // Referral Code
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "REFERRAL CODE",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF94A3B8),
+                                    letterSpacing = 0.5.sp
+                                )
+                                Text(
+                                    text = uiState.referralCode,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF4338CA)
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color.White,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFC7D2FE)),
+                                modifier = Modifier.clickable {
+                                    SoundManager.playTap()
+                                    try {
+                                        val sendIntent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, "Play Arrow Escape and earn real rewards! Use my referral code: ${uiState.referralCode}")
+                                            type = "text/plain"
+                                        }
+                                        context.startActivity(Intent.createChooser(sendIntent, "Share Referral Code"))
+                                    } catch (e: Exception) {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clip = ClipData.newPlainText("Referral Code", uiState.referralCode)
+                                        clipboard.setPrimaryClip(clip)
+                                        Toast.makeText(context, "Referral code copied!", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.Share, contentDescription = null, tint = Color(0xFF4338CA), modifier = Modifier.size(12.dp))
+                                    Text(text = "Share", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4338CA))
+                                }
+                            }
+                        }
+
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
+
+                        // Player Display Name Field
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "DISPLAY NAME",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF94A3B8),
+                                    letterSpacing = 0.5.sp
+                                )
+                                if (!isEditingName) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color.White,
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                        modifier = Modifier.clickable {
+                                            SoundManager.playTap()
+                                            editName = uiState.displayName
+                                            isEditingName = true
+                                        }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Edit, contentDescription = null, tint = Color(0xFF475569), modifier = Modifier.size(12.dp))
+                                            Text(text = "Edit", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                                        }
+                                    }
+                                }
+                            }
+                            if (isEditingName) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = editName,
+                                        onValueChange = { editName = it },
+                                        placeholder = { Text("Display Name") },
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Button(
+                                        onClick = {
+                                            SoundManager.playTap()
+                                            val clean = editName.trim().ifEmpty { "Player One" }
+                                            onUpdateProfile(clean, uiState.username, uiState.upiId, uiState.isRegistered)
+                                            isEditingName = false
+                                            Toast.makeText(context, "Name updated!", Toast.LENGTH_SHORT).show()
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                                        modifier = Modifier.height(50.dp)
+                                    ) {
+                                        Text(text = "Save", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = uiState.displayName,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
+                        }
+
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
+
+                        // UPI ID Field
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "UPI ID FOR PAYOUTS",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF94A3B8),
+                                    letterSpacing = 0.5.sp
+                                )
+                                if (!isEditingUpi) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color.White,
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                        modifier = Modifier.clickable {
+                                            SoundManager.playTap()
+                                            editUpi = uiState.upiId
+                                            isEditingUpi = true
+                                        }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Edit, contentDescription = null, tint = Color(0xFF475569), modifier = Modifier.size(12.dp))
+                                            Text(text = "Edit", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                                        }
+                                    }
+                                }
+                            }
+                            if (isEditingUpi) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = editUpi,
+                                        onValueChange = { editUpi = it },
+                                        placeholder = { Text("e.g. name@okhdfcbank") },
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Button(
+                                        onClick = {
+                                            SoundManager.playTap()
+                                            val clean = editUpi.trim()
+                                            onUpdateProfile(uiState.displayName, uiState.username, clean, uiState.isRegistered)
+                                            isEditingUpi = false
+                                            Toast.makeText(context, "UPI ID saved!", Toast.LENGTH_SHORT).show()
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                                        modifier = Modifier.height(50.dp)
+                                    ) {
+                                        Text(text = "Save", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = if (uiState.upiId.isNotEmpty()) uiState.upiId else "Not set (tap edit to add)",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (uiState.upiId.isNotEmpty()) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (uiState.upiId.isNotEmpty()) Color(0xFF0F172A) else Color(0xFF94A3B8)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Account Registration / Login Section
+                if (!uiState.isRegistered && !showAuthForm) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color(0xFFEFF6FF),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                Text(
+                                    text = "Save Progress & Payouts",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF1E3A8A)
+                                )
+                                Text(
+                                    text = "Create an account to safeguard your rewards",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF2563EB)
+                                )
+                            }
+                            Button(
+                                onClick = {
+                                    SoundManager.playTap()
+                                    showAuthForm = true
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                            ) {
+                                Text(text = "Register", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
+
+                if (showAuthForm) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (authMode == 0) "Create Game Account" else "Account Sign In",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0F172A)
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (authMode == 0) Color(0xFF2563EB) else Color(0xFFE2E8F0),
+                                        modifier = Modifier.clickable {
+                                            SoundManager.playTap()
+                                            authMode = 0
+                                        }
+                                    ) {
+                                        Text(
+                                            text = "Register",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (authMode == 0) Color.White else Color(0xFF475569),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (authMode == 1) Color(0xFF2563EB) else Color(0xFFE2E8F0),
+                                        modifier = Modifier.clickable {
+                                            SoundManager.playTap()
+                                            authMode = 1
+                                        }
+                                    ) {
+                                        Text(
+                                            text = "Login",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (authMode == 1) Color.White else Color(0xFF475569),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = authUsername,
+                                onValueChange = { authUsername = it },
+                                label = { Text("Username") },
+                                placeholder = { Text("e.g. MasterGamer") },
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            OutlinedTextField(
+                                value = authPassword,
+                                onValueChange = { authPassword = it },
+                                label = { Text("Password") },
+                                placeholder = { Text("••••••••") },
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            if (authError != null) {
+                                Text(
+                                    text = authError!!,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFDC2626)
+                                )
+                            }
+                            if (authSuccess != null) {
+                                Text(
+                                    text = authSuccess!!,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF16A34A)
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        SoundManager.playTap()
+                                        authError = null
+                                        authSuccess = null
+
+                                        if (authUsername.trim().length < 3) {
+                                            authError = "Username must be at least 3 characters."
+                                            return@Button
+                                        }
+                                        if (authPassword.length < 4) {
+                                            authError = "Password must be at least 4 characters."
+                                            return@Button
+                                        }
+
+                                        val cleanUser = authUsername.trim().lowercase().replace("\\s+".toRegex(), "_")
+                                        val cleanDisp = authUsername.trim()
+                                        onUpdateProfile(cleanDisp, cleanUser, uiState.upiId, true)
+                                        authSuccess = if (authMode == 0) "Account registered successfully!" else "Signed in successfully!"
+                                        Toast.makeText(context, authSuccess, Toast.LENGTH_SHORT).show()
+                                        showAuthForm = false
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                                    modifier = Modifier.weight(1f).height(44.dp)
+                                ) {
+                                    Text(
+                                        text = if (authMode == 0) "Register Account" else "Sign In",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        SoundManager.playTap()
+                                        showAuthForm = false
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.height(44.dp)
+                                ) {
+                                    Text(text = "Cancel", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
+
+                // Stats Grid
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFF8FAFC),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFF2563EB), modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(text = "CLEARED", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                            Text(text = "${uiState.completedLevels.size} Levels", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFF8FAFC),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.TrendingUp, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(text = "TOTAL EARNED", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                            Text(text = "₹${"%.2f".format(uiState.totalEarnings)}", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF16A34A))
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFF8FAFC),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.Lightbulb, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(text = "HINTS LEFT", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                            Text(text = "${uiState.hintsRemaining}", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFF8FAFC),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF4F46E5), modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(text = "CURRENT LEVEL", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                            Text(text = "Level ${uiState.unlockedLevel}", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF2563EB))
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Reset Progress Section
+                if (showResetConfirm) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFFEF2F2),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Reset all progress & start over?",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF991B1B),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Button(
+                                    onClick = {
+                                        SoundManager.playTap()
+                                        onResetProgress()
+                                        showResetConfirm = false
+                                        onDismiss()
+                                        Toast.makeText(context, "Progress reset.", Toast.LENGTH_SHORT).show()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.weight(1f).height(40.dp)
+                                ) {
+                                    Text(text = "Yes, Reset", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                                OutlinedButton(
+                                    onClick = { showResetConfirm = false },
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.weight(1f).height(40.dp)
+                                ) {
+                                    Text(text = "Cancel", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = {
+                            SoundManager.playTap()
+                            showResetConfirm = true
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text(text = "Reset Game Progress", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Close Button
+                Button(
+                    onClick = {
+                        SoundManager.playTap()
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text(text = "Close", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+            }
+        }
+    }
+}

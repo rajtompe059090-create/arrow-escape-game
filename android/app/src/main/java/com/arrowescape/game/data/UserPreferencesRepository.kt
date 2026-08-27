@@ -234,11 +234,14 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
-    suspend fun updateProfile(displayName: String, username: String, upiId: String) {
+    suspend fun updateProfile(displayName: String, username: String, upiId: String, isRegistered: Boolean = false) {
         context.dataStore.edit { prefs ->
             prefs[Keys.DISPLAY_NAME] = displayName
             prefs[Keys.USERNAME] = username
             prefs[Keys.UPI_ID] = upiId
+            if (isRegistered) {
+                prefs[Keys.IS_REGISTERED] = true
+            }
         }
     }
 

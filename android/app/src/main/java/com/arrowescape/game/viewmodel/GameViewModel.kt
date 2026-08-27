@@ -299,9 +299,9 @@ class GameViewModel(
         }
     }
 
-    fun updateProfile(displayName: String, username: String, upiId: String) {
+    fun updateProfile(displayName: String, username: String, upiId: String, isRegistered: Boolean = false) {
         viewModelScope.launch {
-            prefsRepo.updateProfile(displayName, username, upiId)
+            prefsRepo.updateProfile(displayName, username, upiId, isRegistered)
         }
     }
 
