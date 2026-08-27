@@ -245,6 +245,7 @@ fun HomeScreen(
                             color = when (difficulty) {
                                 Difficulty.EASY -> Color(0xFFECFDF5)
                                 Difficulty.NORMAL -> Color(0xFFEFF6FF)
+                                Difficulty.MEDIUM -> Color(0xFFF0FDFA)
                                 Difficulty.HARD -> Color(0xFFFEF3C7)
                                 Difficulty.VERY_HARD -> Color(0xFFFFEDD5)
                                 Difficulty.MASTER -> Color(0xFFF3E8FF)
@@ -259,6 +260,7 @@ fun HomeScreen(
                                 color = when (difficulty) {
                                     Difficulty.EASY -> Color(0xFF059669)
                                     Difficulty.NORMAL -> Color(0xFF2563EB)
+                                    Difficulty.MEDIUM -> Color(0xFF0D9488)
                                     Difficulty.HARD -> Color(0xFFD97706)
                                     Difficulty.VERY_HARD -> Color(0xFFEA580C)
                                     Difficulty.MASTER -> Color(0xFF9333EA)
