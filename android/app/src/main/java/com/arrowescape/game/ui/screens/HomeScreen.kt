@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.arrowescape.game.ads.AdManager
 import com.arrowescape.game.model.Difficulty
 import com.arrowescape.game.sound.SoundManager
 import com.arrowescape.game.viewmodel.GameUiState
@@ -477,6 +478,14 @@ fun HomeScreen(
                     }
                 }
             }
+
+            // BANNER AD (Between main level card and navigation grid)
+            AdManager.BannerAdView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(vertical = 4.dp)
+            )
 
             // 4. BOTTOM FEATURES GRID (6 interactive tiles: Profile, Wallet, Daily, Rewards, Levels, Settings)
             Row(

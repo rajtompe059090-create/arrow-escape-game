@@ -120,14 +120,6 @@ fun GameScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
 
-                // TOP BANNER
-                AdManager.TopBannerView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .padding(vertical = 2.dp)
-                )
-
                 // TOP BAR
                 Surface(
                     color = Color.White,
@@ -312,7 +304,18 @@ fun GameScreen(
             }
 
             // =================================================
-            // BOTTOM CONTROLS + BANNER
+            // BANNER AD (Between puzzle board and bottom controls)
+            // =================================================
+
+            AdManager.BannerAdView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+
+            // =================================================
+            // BOTTOM CONTROLS
             // =================================================
 
             Column(
@@ -324,7 +327,7 @@ fun GameScreen(
                         .fillMaxWidth()
                         .padding(
                             horizontal = 24.dp,
-                            vertical = 10.dp
+                            vertical = 8.dp
                         ),
                     horizontalArrangement =
                         Arrangement.SpaceEvenly,
@@ -480,14 +483,6 @@ fun GameScreen(
                         }
                     }
                 }
-
-                // BOTTOM BANNER
-                AdManager.BottomBannerView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .padding(vertical = 2.dp)
-                )
             }
         }
 

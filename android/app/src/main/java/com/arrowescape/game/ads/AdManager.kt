@@ -452,11 +452,11 @@ object AdManager {
     }
 
     // =========================================================
-    // TOP BANNER VIEW
+    // BANNER VIEW (Adaptive Banner)
     // =========================================================
 
     @Composable
-    fun TopBannerView(
+    fun BannerAdView(
         modifier: Modifier = Modifier
     ) {
         var isLoaded by remember { mutableStateOf(false) }
@@ -474,7 +474,7 @@ object AdManager {
                 factory = { context ->
                     AdView(context).apply {
                         setAdSize(getAdaptiveAdSize(context))
-                        adUnitId = TOP_BANNER_ID
+                        adUnitId = BANNER_ID
                         layoutParams = ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -483,16 +483,16 @@ object AdManager {
                         adListener = object : AdListener() {
                             override fun onAdLoaded() {
                                 isLoaded = true
-                                Log.d(TAG, "TOP_BANNER_LOADED")
+                                Log.d(TAG, "BANNER_LOADED")
                             }
 
                             override fun onAdFailedToLoad(error: LoadAdError) {
                                 isLoaded = false
-                                Log.w(TAG, "TOP_BANNER_FAILED: code=${error.code}, message=${error.message}")
+                                Log.w(TAG, "BANNER_FAILED: code=${error.code}, message=${error.message}")
                             }
                         }
 
-                        Log.d(TAG, "TOP_BANNER_LOADING: $TOP_BANNER_ID")
+                        Log.d(TAG, "BANNER_LOADING: $BANNER_ID")
                         loadAd(AdRequest.Builder().build())
                     }
                 }
@@ -500,52 +500,10 @@ object AdManager {
         }
     }
 
-    // =========================================================
-    // BOTTOM BANNER VIEW
-    // =========================================================
+    // Backwards-compatible aliases
+    @Composable
+    fun TopBannerView(modifier: Modifier = Modifier) = BannerAdView(modifier)
 
     @Composable
-    fun BottomBannerView(
-        modifier: Modifier = Modifier
-    ) {
-        var isLoaded by remember { mutableStateOf(false) }
-
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            contentAlignment = Alignment.Center
-        ) {
-            AndroidView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                factory = { context ->
-                    AdView(context).apply {
-                        setAdSize(getAdaptiveAdSize(context))
-                        adUnitId = BOTTOM_BANNER_ID
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-
-                        adListener = object : AdListener() {
-                            override fun onAdLoaded() {
-                                isLoaded = true
-                                Log.d(TAG, "BOTTOM_BANNER_LOADED")
-                            }
-
-                            override fun onAdFailedToLoad(error: LoadAdError) {
-                                isLoaded = false
-                                Log.w(TAG, "BOTTOM_BANNER_FAILED: code=${error.code}, message=${error.message}")
-                            }
-                        }
-
-                        Log.d(TAG, "BOTTOM_BANNER_LOADING: $BOTTOM_BANNER_ID")
-                        loadAd(AdRequest.Builder().build())
-                    }
-                }
-            )
-        }
-    }
+    fun BottomBannerView(modifier: Modifier = Modifier) = BannerAdView(modifier)
 }
