@@ -50,15 +50,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,19 +72,17 @@ import com.arrowescape.game.viewmodel.GameUiState
 import kotlinx.coroutines.launch
 
 /**
- * Calculates a smooth procedural horizontal position (0.18f to 0.82f)
- * combining zig-zag transitions, gentle S-curves, and short straight sections.
+ * Calculates a smooth alternating horizontal position (0.22f to 0.78f)
+ * for a dynamic, clearly visible zigzag roadmap path.
  */
 private fun getNodeXFraction(indexInTier: Int): Float {
-    return when (indexInTier % 8) {
-        0 -> 0.50f // Center
-        1 -> 0.72f // Curve right
-        2 -> 0.82f // Peak right
-        3 -> 0.80f // Straight right section
-        4 -> 0.50f // Center cross
-        5 -> 0.20f // Peak left
-        6 -> 0.20f // Straight left section
-        7 -> 0.32f // Curve back
+    return when (indexInTier % 6) {
+        0 -> 0.25f
+        1 -> 0.72f
+        2 -> 0.38f
+        3 -> 0.78f
+        4 -> 0.22f
+        5 -> 0.60f
         else -> 0.50f
     }
 }
@@ -349,7 +349,7 @@ fun LevelSelectScreen(
                             .fillMaxWidth()
                             .height(92.dp)
                     ) {
-                        // Connecting Roadmap Path Line to next node
+                        // Connecting Roadmap Path (Smooth S-curve connecting exact node centers)
                         if (index < levelIds.size - 1) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 val startX = size.width * curXFraction
@@ -363,24 +363,44 @@ fun LevelSelectScreen(
                                     else -> Color(0xFFCBD5E1)
                                 }
 
-                                drawLine(
+                                val path = Path().apply {
+                                    moveTo(startX, startY)
+                                    cubicTo(
+                                        startX,
+                                        startY + (endY - startY) * 0.5f,
+                                        endX,
+                                        startY + (endY - startY) * 0.5f,
+                                        endX,
+                                        endY
+                                    )
+                                }
+
+                                drawPath(
+                                    path = path,
                                     color = lineColor,
-                                    start = Offset(startX, startY),
-                                    end = Offset(endX, endY),
-                                    strokeWidth = 10f,
-                                    cap = StrokeCap.Round,
-                                    pathEffect = if (!isUnlocked) PathEffect.dashPathEffect(floatArrayOf(12f, 12f), 0f) else null
+                                    style = Stroke(
+                                        width = 10f,
+                                        cap = StrokeCap.Round,
+                                        pathEffect = if (!isUnlocked) PathEffect.dashPathEffect(floatArrayOf(12f, 12f), 0f) else null
+                                    )
                                 )
                             }
                         }
 
-                        // Roadmap Node
-                        val horizontalBias = (curXFraction - 0.5f) * 2f
+                        // Roadmap Node positioned with exact center matching startX/startY
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 24.dp),
-                            contentAlignment = BiasAlignment(horizontalBias, 0f)
+                                .layout { measurable, constraints ->
+                                    val placeable = measurable.measure(constraints)
+                                    val centerX = (constraints.maxWidth * curXFraction).toInt()
+                                    val centerY = (constraints.maxHeight * 0.5f).toInt()
+                                    val x = centerX - placeable.width / 2
+                                    val y = centerY - placeable.height / 2
+                                    layout(constraints.maxWidth, constraints.maxHeight) {
+                                        placeable.placeRelative(x, y)
+                                    }
+                                }
                         ) {
                             RoadmapNode(
                                 levelId = levelId,
