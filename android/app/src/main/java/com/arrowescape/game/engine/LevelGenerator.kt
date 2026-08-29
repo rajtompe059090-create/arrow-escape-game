@@ -87,10 +87,10 @@ object LevelGenerator {
             else -> 6
         }
         val maxBends = when {
-            gridDim <= 6 -> if (levelId > 20) 1 else 0
-            gridDim <= 8 -> 2
-            gridDim <= 11 -> 3
-            else -> 4
+            gridDim <= 6 -> 2 // Allow bends/L-shapes starting from Level 1
+            gridDim <= 8 -> 3
+            gridDim <= 11 -> 4
+            else -> 5
         }
 
         var bestCandidate: List<Arrow>? = null
