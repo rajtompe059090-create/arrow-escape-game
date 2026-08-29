@@ -715,19 +715,20 @@ fun HomeScreen(
                 }
             }
         }
-
-        // Dedicated Bottom Anchored Banner Ad
-        Surface(
-            color = Color.White,
-            shadowElevation = 4.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            AdManager.BannerAdView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(vertical = 2.dp)
-            )
-        }
     }
+
+    // Dedicated Bottom Anchored Banner Ad
+    Surface(
+        color = Color.White,
+        shadowElevation = 4.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        AdManager.BannerAdView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(vertical = 2.dp)
+        )
+    }
+}
 }
