@@ -29,6 +29,7 @@ data class GameUiState(
     val isGameOver: Boolean = false,
     val unlockedLevel: Int = 1,
     val completedLevels: Set<Int> = emptySet(),
+    val levelStars: Map<Int, Int> = emptyMap(),
     val walletBalance: Double = 0.0,
     val totalEarnings: Double = 0.0,
     val hintsRemaining: Int = 3,
@@ -45,6 +46,7 @@ data class GameUiState(
     val isRegistered: Boolean = false,
     val earningHistory: List<EarningTransaction> = emptyList(),
     val lastCompletedReward: Double = 0.0,
+    val lastCompletedStars: Int = 3,
     val isLastLevelAlreadyClaimed: Boolean = false
 )
 
@@ -62,6 +64,7 @@ class GameViewModel(
                     it.copy(
                         unlockedLevel = prefs.unlockedLevel,
                         completedLevels = prefs.completedLevels,
+                        levelStars = prefs.levelStars,
                         walletBalance = prefs.walletBalance,
                         totalEarnings = prefs.totalEarnings,
                         hintsRemaining = prefs.hintsRemaining,
@@ -150,11 +153,17 @@ class GameViewModel(
                 if (isCompleted) {
                     SoundManager.playLevelComplete()
                     val reward = PuzzleEngine.calculateRewardRupees(level.id).toDouble()
-                    val isFirstTime = prefsRepo.recordLevelCompleted(level.id, reward)
+                    val earnedStars = when (state.lives) {
+                        3 -> 3
+                        2 -> 2
+                        else -> 1
+                    }
+                    val isFirstTime = prefsRepo.recordLevelCompleted(level.id, reward, earnedStars)
 
                     _uiState.update {
                         it.copy(
                             lastCompletedReward = if (isFirstTime) reward else 0.0,
+                            lastCompletedStars = earnedStars,
                             isLastLevelAlreadyClaimed = !isFirstTime
                         )
                     }

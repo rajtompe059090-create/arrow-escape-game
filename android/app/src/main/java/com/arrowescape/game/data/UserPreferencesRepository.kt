@@ -24,6 +24,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 data class UserPreferences(
     val unlockedLevel: Int,
     val completedLevels: Set<Int>,
+    val levelStars: Map<Int, Int>,
     val walletBalance: Double,
     val totalEarnings: Double,
     val hintsRemaining: Int,
@@ -46,6 +47,7 @@ class UserPreferencesRepository(private val context: Context) {
     private object Keys {
         val UNLOCKED_LEVEL = intPreferencesKey("unlocked_level")
         val COMPLETED_LEVELS = stringSetPreferencesKey("completed_levels")
+        val LEVEL_STARS_JSON = stringPreferencesKey("level_stars_json")
         val WALLET_BALANCE = doublePreferencesKey("wallet_balance")
         val TOTAL_EARNINGS = doublePreferencesKey("total_earnings")
         val HINTS_REMAINING = intPreferencesKey("hints_remaining")
@@ -69,6 +71,8 @@ class UserPreferencesRepository(private val context: Context) {
         .map { prefs ->
             val unlocked = prefs[Keys.UNLOCKED_LEVEL] ?: 1
             val completedSet = prefs[Keys.COMPLETED_LEVELS]?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet()
+            val starsJson = prefs[Keys.LEVEL_STARS_JSON] ?: "{}"
+            val starsMap = parseLevelStars(starsJson)
             val wallet = prefs[Keys.WALLET_BALANCE] ?: 0.0
             val total = prefs[Keys.TOTAL_EARNINGS] ?: 0.0
             val hints = prefs[Keys.HINTS_REMAINING] ?: 3
@@ -89,6 +93,7 @@ class UserPreferencesRepository(private val context: Context) {
             UserPreferences(
                 unlockedLevel = unlocked,
                 completedLevels = completedSet,
+                levelStars = starsMap,
                 walletBalance = wallet,
                 totalEarnings = total,
                 hintsRemaining = hints,
@@ -107,7 +112,7 @@ class UserPreferencesRepository(private val context: Context) {
             )
         }
 
-    suspend fun recordLevelCompleted(levelId: Int, rewardRupees: Double): Boolean {
+    suspend fun recordLevelCompleted(levelId: Int, rewardRupees: Double, earnedStars: Int = 3): Boolean {
         var isFirstTime = false
         context.dataStore.edit { prefs ->
             val currentCompleted = prefs[Keys.COMPLETED_LEVELS] ?: emptySet()
@@ -117,6 +122,14 @@ class UserPreferencesRepository(private val context: Context) {
 
             val currentUnlocked = prefs[Keys.UNLOCKED_LEVEL] ?: 1
             prefs[Keys.UNLOCKED_LEVEL] = maxOf(currentUnlocked, levelId + 1)
+
+            // Persist star rating (never downgrade)
+            val starsJson = prefs[Keys.LEVEL_STARS_JSON] ?: "{}"
+            val starsMap = parseLevelStars(starsJson).toMutableMap()
+            val prevStars = starsMap[levelId] ?: 0
+            val newStars = maxOf(prevStars, earnedStars.coerceIn(1, 3))
+            starsMap[levelId] = newStars
+            prefs[Keys.LEVEL_STARS_JSON] = serializeLevelStars(starsMap)
 
             if (isFirstTime) {
                 val currentWallet = prefs[Keys.WALLET_BALANCE] ?: 0.0
@@ -255,6 +268,7 @@ class UserPreferencesRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[Keys.UNLOCKED_LEVEL] = 1
             prefs[Keys.COMPLETED_LEVELS] = emptySet()
+            prefs[Keys.LEVEL_STARS_JSON] = "{}"
             prefs[Keys.WALLET_BALANCE] = 0.0
             prefs[Keys.TOTAL_EARNINGS] = 0.0
             prefs[Keys.HINTS_REMAINING] = 3
@@ -265,6 +279,30 @@ class UserPreferencesRepository(private val context: Context) {
             prefs[Keys.LAST_DAILY_TIMESTAMP] = 0L
             prefs[Keys.TRANSACTIONS_JSON] = "[]"
         }
+    }
+
+    private fun parseLevelStars(jsonStr: String): Map<Int, Int> {
+        val map = mutableMapOf<Int, Int>()
+        try {
+            val jsonObject = JSONObject(jsonStr)
+            val keys = jsonObject.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val levelId = key.toIntOrNull()
+                if (levelId != null) {
+                    map[levelId] = jsonObject.optInt(key, 0)
+                }
+            }
+        } catch (_: Exception) {}
+        return map
+    }
+
+    private fun serializeLevelStars(map: Map<Int, Int>): String {
+        val jsonObject = JSONObject()
+        for ((levelId, stars) in map) {
+            jsonObject.put(levelId.toString(), stars)
+        }
+        return jsonObject.toString()
     }
 
     private fun parseTransactions(jsonStr: String): List<EarningTransaction> {

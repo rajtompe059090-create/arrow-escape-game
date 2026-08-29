@@ -1707,6 +1707,7 @@ fun LevelCompleteDialog(
     onDismiss: () -> Unit
 ) {
     val level = uiState.currentLevel ?: return
+    val earnedStars = uiState.lastCompletedStars.coerceIn(1, 3)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1723,34 +1724,64 @@ fun LevelCompleteDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Trophy / Celebration Icon
                 Surface(
                     shape = CircleShape,
                     color = Color(0xFFECFDF5),
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(68.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(text = "🎉", fontSize = 32.sp)
+                        Text(text = "🏆", fontSize = 36.sp)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
                     text = "Level ${level.id} Solved!",
-                    fontSize = 20.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
                     color = Color(0xFF0F172A)
                 )
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Star Rating Display (⭐⭐⭐)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    for (i in 1..3) {
+                        val isLit = i <= earnedStars
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isLit) Color(0xFFFEF3C7) else Color(0xFFF1F5F9),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = if (isLit) "⭐" else "☆",
+                                    fontSize = 18.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = if (uiState.isLastLevelAlreadyClaimed) "Already completed previously." else "Reward credited to your wallet balance!",
+                    text = when (earnedStars) {
+                        3 -> "⭐ 3 Stars • Perfect Clear!"
+                        2 -> "⭐ 2 Stars • Great Job!"
+                        else -> "⭐ 1 Star • Level Cleared!"
+                    },
                     fontSize = 12.sp,
-                    color = Color(0xFF64748B)
+                    fontWeight = FontWeight.Bold,
+                    color = if (earnedStars == 3) Color(0xFFD97706) else Color(0xFF64748B)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Reward Banner
                 Surface(
@@ -1762,19 +1793,33 @@ fun LevelCompleteDialog(
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = "REWARD", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFF94A3B8), letterSpacing = 1.sp)
+                        Text(
+                            text = if (uiState.isLastLevelAlreadyClaimed) "LEVEL ALREADY CLAIMED" else "REWARD CREDITED",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF94A3B8),
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = if (uiState.isLastLevelAlreadyClaimed) "₹0.00" else "+₹${"%.2f".format(uiState.lastCompletedReward)}",
-                            fontSize = 26.sp,
+                            fontSize = 28.sp,
                             fontWeight = FontWeight.Black,
                             color = Color(0xFF34D399)
                         )
-                        Text(text = "Wallet: ₹${"%.2f".format(uiState.walletBalance)}", fontSize = 11.sp, color = Color(0xFF94A3B8))
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Wallet Balance: ₹${"%.2f".format(uiState.walletBalance)}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF94A3B8)
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
+                // Next Level Action Button
                 Button(
                     onClick = onNextLevel,
                     shape = RoundedCornerShape(16.dp),

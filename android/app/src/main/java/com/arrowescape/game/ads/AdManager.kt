@@ -97,7 +97,7 @@ object AdManager {
             Log.d(TAG, "Initializing MobileAds SDK: $APP_ID")
 
             MobileAds.initialize(context) { status ->
-                Log.d(TAG, "MobileAds initialization complete: $status")
+                Log.d(TAG, "MOBILE_ADS_INITIALIZED: $status")
 
                 loadInterstitial(context.applicationContext)
                 loadRewarded(context.applicationContext)
@@ -124,7 +124,7 @@ object AdManager {
         }
 
         isInterstitialLoading = true
-        Log.d(TAG, "INTERSTITIAL_LOADING: $INTERSTITIAL_ID")
+        Log.d(TAG, "INTERSTITIAL_LOAD_STARTED: $INTERSTITIAL_ID")
 
         InterstitialAd.load(
             context,
@@ -134,7 +134,7 @@ object AdManager {
                 override fun onAdLoaded(ad: InterstitialAd) {
                     interstitialAd = ad
                     isInterstitialLoading = false
-                    Log.d(TAG, "INTERSTITIAL_LOADED_SUCCESS")
+                    Log.d(TAG, "INTERSTITIAL_LOADED")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
@@ -224,7 +224,7 @@ object AdManager {
         }
 
         isRewardedLoading = true
-        Log.d(TAG, "REWARDED_LOADING: $REWARDED_ID")
+        Log.d(TAG, "REWARDED_LOAD_STARTED: $REWARDED_ID")
 
         RewardedAd.load(
             context,
@@ -234,13 +234,13 @@ object AdManager {
                 override fun onAdLoaded(ad: RewardedAd) {
                     rewardedAd = ad
                     isRewardedLoading = false
-                    Log.d(TAG, "REWARDED_LOADED_SUCCESS")
+                    Log.d(TAG, "REWARDED_LOADED")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     rewardedAd = null
                     isRewardedLoading = false
-                    Log.w(TAG, "REWARDED_LOAD_FAILED: code=${error.code}, message=${error.message}")
+                    Log.w(TAG, "REWARDED_LOAD_FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}")
                 }
             }
         )
@@ -339,7 +339,7 @@ object AdManager {
         }
 
         isAppOpenLoading = true
-        Log.d(TAG, "APP_OPEN_LOADING: $APP_OPEN_ID")
+        Log.d(TAG, "APP_OPEN_LOAD_STARTED: $APP_OPEN_ID")
 
         AppOpenAd.load(
             context,
@@ -350,13 +350,13 @@ object AdManager {
                     appOpenAd = ad
                     isAppOpenLoading = false
                     appOpenLoadTime = Date().time
-                    Log.d(TAG, "APP_OPEN_LOADED_SUCCESS")
+                    Log.d(TAG, "APP_OPEN_LOADED")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     appOpenAd = null
                     isAppOpenLoading = false
-                    Log.w(TAG, "APP_OPEN_LOAD_FAILED: code=${error.code}, message=${error.message}")
+                    Log.w(TAG, "APP_OPEN_LOAD_FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}")
                 }
             }
         )
@@ -436,15 +436,18 @@ object AdManager {
 
     private fun getAdaptiveAdSize(context: Context): AdSize {
         return try {
-            val metrics = context.resources.displayMetrics
-            val widthPixels = metrics.widthPixels.toFloat()
-            val density = metrics.density
-            val widthDp = if (density > 0f) (widthPixels / density).toInt() else 320
+            val displayMetrics = context.resources.displayMetrics
+            val density = displayMetrics.density
+            var widthPixels = displayMetrics.widthPixels.toFloat()
+            if (widthPixels <= 0f) {
+                widthPixels = 320f * density
+            }
+            val adWidthDp = (widthPixels / density).toInt().coerceAtLeast(320)
 
             AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
                 context,
-                widthDp
-            )
+                adWidthDp
+            ) ?: AdSize.BANNER
         } catch (e: Exception) {
             Log.w(TAG, "Adaptive banner sizing fallback: ${e.message}")
             AdSize.BANNER
@@ -457,7 +460,8 @@ object AdManager {
 
     @Composable
     fun BannerAdView(
-        modifier: Modifier = Modifier
+        modifier: Modifier = Modifier,
+        adUnitId: String = BANNER_ID
     ) {
         var isLoaded by remember { mutableStateOf(false) }
 
@@ -472,9 +476,11 @@ object AdManager {
                     .fillMaxWidth()
                     .wrapContentHeight(),
                 factory = { context ->
+                    Log.d(TAG, "BANNER_CREATED")
                     AdView(context).apply {
-                        setAdSize(getAdaptiveAdSize(context))
-                        adUnitId = BANNER_ID
+                        val adSize = getAdaptiveAdSize(context)
+                        setAdSize(adSize)
+                        this.adUnitId = adUnitId
                         layoutParams = ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -488,22 +494,36 @@ object AdManager {
 
                             override fun onAdFailedToLoad(error: LoadAdError) {
                                 isLoaded = false
-                                Log.w(TAG, "BANNER_FAILED: code=${error.code}, message=${error.message}")
+                                Log.w(
+                                    TAG,
+                                    "BANNER_LOAD_FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}"
+                                )
                             }
                         }
 
-                        Log.d(TAG, "BANNER_LOADING: $BANNER_ID")
+                        Log.d(TAG, "BANNER_LOAD_STARTED: $adUnitId")
                         loadAd(AdRequest.Builder().build())
+                    }
+                },
+                onRelease = { adView ->
+                    try {
+                        adView.destroy()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Banner destroy exception: ${e.message}")
                     }
                 }
             )
         }
     }
 
-    // Backwards-compatible aliases
+    // Backwards-compatible aliases for top / bottom instances
     @Composable
-    fun TopBannerView(modifier: Modifier = Modifier) = BannerAdView(modifier)
+    fun TopBannerView(modifier: Modifier = Modifier) {
+        BannerAdView(modifier = modifier, adUnitId = TOP_BANNER_ID)
+    }
 
     @Composable
-    fun BottomBannerView(modifier: Modifier = Modifier) = BannerAdView(modifier)
+    fun BottomBannerView(modifier: Modifier = Modifier) {
+        BannerAdView(modifier = modifier, adUnitId = BOTTOM_BANNER_ID)
+    }
 }
