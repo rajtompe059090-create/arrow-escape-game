@@ -76,16 +76,22 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+            .background(Color(0xFFF8FAFC)),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
             // 1. TOP BAR: Sound, Profile Header, Brand Title, Settings Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -478,14 +484,6 @@ fun HomeScreen(
                 }
             }
 
-            // BANNER AD (Between main level card and navigation grid)
-            AdManager.BannerAdView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(vertical = 4.dp)
-            )
-
             // 4. BOTTOM FEATURES GRID (6 interactive tiles: Profile, Wallet, Daily, Rewards, Levels, Settings)
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -716,6 +714,20 @@ fun HomeScreen(
                     Text(text = "Support", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                 }
             }
+        }
+
+        // Dedicated Bottom Anchored Banner Ad
+        Surface(
+            color = Color.White,
+            shadowElevation = 4.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            AdManager.BannerAdView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(vertical = 2.dp)
+            )
         }
     }
 }

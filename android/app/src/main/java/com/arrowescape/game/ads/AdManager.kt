@@ -434,9 +434,21 @@ object AdManager {
     // ADAPTIVE BANNER SIZE HELPER
     // =========================================================
 
+    private fun findActivity(context: Context): Activity? {
+        var currentContext = context
+        while (currentContext is android.content.ContextWrapper) {
+            if (currentContext is Activity) {
+                return currentContext
+            }
+            currentContext = currentContext.baseContext
+        }
+        return null
+    }
+
     private fun getAdaptiveAdSize(context: Context): AdSize {
         return try {
-            val displayMetrics = context.resources.displayMetrics
+            val act = findActivity(context)
+            val displayMetrics = act?.resources?.displayMetrics ?: context.resources.displayMetrics
             val density = displayMetrics.density
             var widthPixels = displayMetrics.widthPixels.toFloat()
             if (widthPixels <= 0f) {
@@ -445,7 +457,7 @@ object AdManager {
             val adWidthDp = (widthPixels / density).toInt().coerceAtLeast(320)
 
             AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-                context,
+                act ?: context,
                 adWidthDp
             ) ?: AdSize.BANNER
         } catch (e: Exception) {
@@ -464,55 +476,60 @@ object AdManager {
         adUnitId: String = BANNER_ID
     ) {
         var isLoaded by remember { mutableStateOf(false) }
+        var isFailed by remember { mutableStateOf(false) }
 
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            contentAlignment = Alignment.Center
-        ) {
-            AndroidView(
-                modifier = Modifier
+        if (!isFailed) {
+            Box(
+                modifier = modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
-                factory = { context ->
-                    Log.d(TAG, "BANNER_CREATED")
-                    AdView(context).apply {
-                        val adSize = getAdaptiveAdSize(context)
-                        setAdSize(adSize)
-                        this.adUnitId = adUnitId
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
+                contentAlignment = Alignment.Center
+            ) {
+                AndroidView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    factory = { context ->
+                        Log.d(TAG, "BANNER_CREATED")
+                        AdView(context).apply {
+                            val adSize = getAdaptiveAdSize(context)
+                            setAdSize(adSize)
+                            this.adUnitId = adUnitId
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT
+                            )
 
-                        adListener = object : AdListener() {
-                            override fun onAdLoaded() {
-                                isLoaded = true
-                                Log.d(TAG, "BANNER_LOADED")
+                            adListener = object : AdListener() {
+                                override fun onAdLoaded() {
+                                    isLoaded = true
+                                    isFailed = false
+                                    Log.d(TAG, "BANNER_LOADED")
+                                }
+
+                                override fun onAdFailedToLoad(error: LoadAdError) {
+                                    isLoaded = false
+                                    isFailed = true
+                                    Log.e(
+                                        TAG,
+                                        "BANNER_FAILED code=${error.code} message=${error.message} domain=${error.domain}"
+                                    )
+                                }
                             }
 
-                            override fun onAdFailedToLoad(error: LoadAdError) {
-                                isLoaded = false
-                                Log.w(
-                                    TAG,
-                                    "BANNER_LOAD_FAILED: code=${error.code}, message=${error.message}, domain=${error.domain}"
-                                )
-                            }
+                            Log.d(TAG, "BANNER_LOAD_STARTED")
+                            loadAd(AdRequest.Builder().build())
                         }
-
-                        Log.d(TAG, "BANNER_LOAD_STARTED: $adUnitId")
-                        loadAd(AdRequest.Builder().build())
+                    },
+                    onRelease = { adView ->
+                        try {
+                            adView.destroy()
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Banner destroy exception: ${e.message}")
+                        }
                     }
-                },
-                onRelease = { adView ->
-                    try {
-                        adView.destroy()
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Banner destroy exception: ${e.message}")
-                    }
-                }
-            )
+                )
+            }
         }
     }
 
