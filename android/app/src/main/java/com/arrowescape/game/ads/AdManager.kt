@@ -286,13 +286,29 @@ object AdManager {
         return rewardedAd != null
     }
 
+    fun showRewarded(
+        activity: Activity,
+        onUserEarnedReward: () -> Unit,
+        onAdUnavailable: () -> Unit = {},
+        onAdDismissed: (() -> Unit)? = null
+    ) {
+        showRewardedAd(
+            activity = activity,
+            onUserEarnedReward = onUserEarnedReward,
+            onAdUnavailable = onAdUnavailable,
+            onAdDismissed = onAdDismissed
+        )
+    }
+
     fun showRewardedAd(
         activity: Activity,
         onUserEarnedReward: () -> Unit,
-        onAdUnavailable: () -> Unit
+        onAdUnavailable: () -> Unit = {},
+        onAdDismissed: (() -> Unit)? = null
     ) {
         if (activity.isFinishing || activity.isDestroyed) {
             onAdUnavailable()
+            onAdDismissed?.invoke()
             return
         }
 
@@ -302,11 +318,13 @@ object AdManager {
         if (ad == null) {
             loadRewarded(activity.applicationContext)
             onAdUnavailable()
+            onAdDismissed?.invoke()
             return
         }
 
         if (!isShowingFullscreenAd.compareAndSet(false, true)) {
             onAdUnavailable()
+            onAdDismissed?.invoke()
             return
         }
 
@@ -316,6 +334,9 @@ object AdManager {
         fun safeDismiss() {
             if (dismissedOnce.compareAndSet(false, true)) {
                 isShowingFullscreenAd.set(false)
+                activity.runOnUiThread {
+                    onAdDismissed?.invoke()
+                }
             }
         }
 
