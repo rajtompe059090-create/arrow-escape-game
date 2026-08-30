@@ -484,6 +484,16 @@ fun GameScreen(
                     }
                 }
             }
+
+            // =================================================
+            // BANNER AD
+            // =================================================
+            AdManager.BannerAdView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(vertical = 2.dp)
+            )
         }
 
         // =====================================================
