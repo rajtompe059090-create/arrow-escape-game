@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Smartphone, Monitor, Code2, Volume2, VolumeX } from 'lucide-react';
+import { Smartphone, Monitor, Code2, Volume2, VolumeX, WifiOff, RefreshCw } from 'lucide-react';
 import { HomeScreen } from './components/HomeScreen';
 import { LevelSelectScreen } from './components/LevelSelectScreen';
 import { GameScreen } from './components/GameScreen';
@@ -52,6 +52,25 @@ export default function App() {
     rewardLabel?: string;
     onComplete: () => void;
   } | null>(null);
+
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const handleRetryConnection = () => {
+    setIsOnline(navigator.onLine);
+  };
 
   const [completedLevelSummary, setCompletedLevelSummary] = useState<{
     levelId: number;
@@ -683,6 +702,29 @@ export default function App() {
             }
           }}
         />
+      )}
+
+      {/* Offline Blocking Overlay */}
+      {!isOnline && (
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-4">
+              <WifiOff className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-black text-slate-900 mb-2">Internet Connection Required</h3>
+            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+              Internet connection required.<br />
+              Please turn on mobile data or Wi-Fi and try again.
+            </p>
+            <button
+              onClick={handleRetryConnection}
+              className="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-600/20 active:scale-95 transition-all"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Footer */}

@@ -19,9 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.arrowescape.game.ads.AdManager
+import com.arrowescape.game.data.NetworkManager
 import com.arrowescape.game.data.UserPreferencesRepository
 import com.arrowescape.game.sound.SoundManager
 import com.arrowescape.game.ui.components.DailyRewardDialog
+import com.arrowescape.game.ui.components.OfflineOverlay
 import com.arrowescape.game.ui.components.ProfileDialog
 import com.arrowescape.game.ui.components.RewardsDialog
 import com.arrowescape.game.ui.components.SettingsDialog
@@ -64,6 +66,9 @@ class MainActivity : ComponentActivity() {
         // Initialize Procedural Sound & Haptics Engine
         SoundManager.initialize(applicationContext)
 
+        // Initialize Global Online Connectivity Monitor
+        NetworkManager.initialize(applicationContext)
+
         // Initialize AdMob
         AdManager.initialize(this)
 
@@ -84,6 +89,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Re-check WAN connectivity on returning to foreground
+        NetworkManager.checkActiveInternet()
         // Try showing App Open Ad on launch/resume
         AdManager.showAppOpenAdIfAvailable(this)
     }
@@ -95,6 +102,7 @@ fun ArrowEscapeMainApp(
     onExitApp: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isOnline by NetworkManager.isOnline.collectAsState()
 
     // ALWAYS START ON HOME SCREEN
     var currentScreen by remember { mutableStateOf(AppScreen.HOME) }
@@ -120,8 +128,14 @@ fun ArrowEscapeMainApp(
             showDailyRewardDialog -> showDailyRewardDialog = false
             showRewardsDialog -> showRewardsDialog = false
             showSettingsDialog -> showSettingsDialog = false
-            currentScreen == AppScreen.GAME -> currentScreen = AppScreen.HOME
-            currentScreen == AppScreen.LEVEL_SELECT -> currentScreen = AppScreen.HOME
+            currentScreen == AppScreen.GAME -> {
+                NetworkManager.checkActiveInternet()
+                currentScreen = AppScreen.HOME
+            }
+            currentScreen == AppScreen.LEVEL_SELECT -> {
+                NetworkManager.checkActiveInternet()
+                currentScreen = AppScreen.HOME
+            }
             currentScreen == AppScreen.HOME -> onExitApp()
         }
     }
@@ -131,12 +145,18 @@ fun ArrowEscapeMainApp(
             HomeScreen(
                 uiState = uiState,
                 onPlayContinue = {
-                    val targetLevel = if (uiState.unlockedLevel > 0) uiState.unlockedLevel else 1
-                    viewModel.loadLevel(targetLevel)
-                    currentScreen = AppScreen.GAME
+                    NetworkManager.checkActiveInternet()
+                    if (isOnline) {
+                        val targetLevel = if (uiState.unlockedLevel > 0) uiState.unlockedLevel else 1
+                        viewModel.loadLevel(targetLevel)
+                        currentScreen = AppScreen.GAME
+                    }
                 },
                 onOpenLevels = {
-                    currentScreen = AppScreen.LEVEL_SELECT
+                    NetworkManager.checkActiveInternet()
+                    if (isOnline) {
+                        currentScreen = AppScreen.LEVEL_SELECT
+                    }
                 },
                 onOpenWallet = {
                     showWalletDialog = true
@@ -169,10 +189,14 @@ fun ArrowEscapeMainApp(
             LevelSelectScreen(
                 uiState = uiState,
                 onSelectLevel = { levelId ->
-                    viewModel.loadLevel(levelId)
-                    currentScreen = AppScreen.GAME
+                    NetworkManager.checkActiveInternet()
+                    if (isOnline) {
+                        viewModel.loadLevel(levelId)
+                        currentScreen = AppScreen.GAME
+                    }
                 },
                 onBack = {
+                    NetworkManager.checkActiveInternet()
                     currentScreen = AppScreen.HOME
                 }
             )
@@ -182,30 +206,58 @@ fun ArrowEscapeMainApp(
             GameScreen(
                 uiState = uiState,
                 onArrowTapped = { arrow ->
-                    viewModel.onArrowTapped(arrow)
+                    if (isOnline) {
+                        viewModel.onArrowTapped(arrow)
+                    } else {
+                        NetworkManager.checkActiveInternet()
+                    }
                 },
                 onUseHint = {
-                    viewModel.useHint()
+                    if (isOnline) {
+                        viewModel.useHint()
+                    } else {
+                        NetworkManager.checkActiveInternet()
+                    }
                 },
                 onGrantRewardedHint = {
-                    viewModel.grantRewardedHint()
+                    if (isOnline) {
+                        viewModel.grantRewardedHint()
+                    } else {
+                        NetworkManager.checkActiveInternet()
+                    }
                 },
                 onRestartLevel = {
-                    viewModel.restartCurrentLevel()
+                    NetworkManager.checkActiveInternet()
+                    if (isOnline) {
+                        viewModel.restartCurrentLevel()
+                    }
                 },
                 onOpenLevels = {
+                    NetworkManager.checkActiveInternet()
                     currentScreen = AppScreen.LEVEL_SELECT
                 },
                 onBack = {
+                    NetworkManager.checkActiveInternet()
                     currentScreen = AppScreen.HOME
                 },
                 onNextLevel = {
-                    val currentLevel = uiState.currentLevel?.id ?: 1
-                    viewModel.loadLevel(currentLevel + 1)
+                    NetworkManager.checkActiveInternet()
+                    if (isOnline) {
+                        val currentLevel = uiState.currentLevel?.id ?: 1
+                        viewModel.loadLevel(currentLevel + 1)
+                    }
                 }
             )
         }
     }
+
+    // Global Online-Only Blocking Overlay
+    OfflineOverlay(
+        isOnline = isOnline,
+        onRetry = {
+            NetworkManager.checkActiveInternet()
+        }
+    )
 
     // Modal Overlays
     if (showWalletDialog) {

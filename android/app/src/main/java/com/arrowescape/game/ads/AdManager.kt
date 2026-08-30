@@ -82,14 +82,10 @@ object AdManager {
 
     fun initialize(context: Context) {
         if (!isInitialized.compareAndSet(false, true)) {
-            Log.d(TAG, "AdManager already initialized. Skipping duplicate call.")
             return
         }
 
         try {
-            Log.d(TAG, "==================================================")
-            Log.d(TAG, "ADMOB_INITIALIZATION_STARTED: AppId=$APP_ID")
-
             // Configure Test Device Support for DEBUG builds
             if (BuildConfig.DEBUG) {
                 val testDeviceIds = listOf(
@@ -99,18 +95,10 @@ object AdManager {
                     .setTestDeviceIds(testDeviceIds)
                     .build()
                 MobileAds.setRequestConfiguration(configuration)
-                Log.d(TAG, "DEBUG_BUILD: Configured AdMob RequestConfiguration with emulator test device support")
             }
 
             MobileAds.initialize(context) { status ->
-                Log.d(TAG, "ADMOB_INITIALIZATION_COMPLETED")
-                for ((adapterClass, adapterStatus) in status.adapterStatusMap) {
-                    Log.d(
-                        TAG,
-                        "  Adapter: $adapterClass | State: ${adapterStatus.initializationState} | Description: ${adapterStatus.description} | Latency: ${adapterStatus.latency}ms"
-                    )
-                }
-                Log.d(TAG, "==================================================")
+                Log.d(TAG, "AdMob initialized")
 
                 // Preload all ad formats safely
                 loadInterstitial(context.applicationContext)
@@ -118,7 +106,7 @@ object AdManager {
                 loadAppOpenAd(context.applicationContext)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "AdMob initialization encountered error: ${e.message}", e)
+            Log.e(TAG, "AdMob initialization error: ${e.message}", e)
         }
     }
 
@@ -128,16 +116,14 @@ object AdManager {
 
     fun loadInterstitial(context: Context) {
         if (interstitialAd != null) {
-            Log.d(TAG, "INTERSTITIAL_ALREADY_AVAILABLE: Skipping request.")
             return
         }
 
         if (!isInterstitialLoading.compareAndSet(false, true)) {
-            Log.d(TAG, "INTERSTITIAL_LOAD_IN_PROGRESS: Skipping duplicate request.")
             return
         }
 
-        Log.d(TAG, "INTERSTITIAL_LOAD_STARTED: UnitId=$INTERSTITIAL_ID")
+        Log.d(TAG, "Interstitial load requested")
 
         InterstitialAd.load(
             context,
@@ -148,7 +134,7 @@ object AdManager {
                     interstitialAd = ad
                     isInterstitialLoading.set(false)
                     interstitialRetryAttempt = 0
-                    Log.d(TAG, "INTERSTITIAL_LOAD_SUCCESS: ResponseInfo=${ad.responseInfo}")
+                    Log.d(TAG, "Interstitial loaded")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
@@ -156,18 +142,13 @@ object AdManager {
                     isInterstitialLoading.set(false)
                     Log.w(
                         TAG,
-                        "INTERSTITIAL_LOAD_FAILED: " +
-                                "errorCode=${error.code} (${getErrorCodeName(error.code)}), " +
-                                "errorMessage=${error.message}, " +
-                                "domain=${error.domain}, " +
-                                "responseInfo=${error.responseInfo}"
+                        "Interstitial failed: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
                     )
 
-                    // Exponential backoff retry (5s, 10s, 20s, max 30s) up to 5 attempts
+                    // Controlled exponential backoff retry (5s, 10s, 20s, max 30s) up to 5 attempts
                     if (interstitialRetryAttempt < 5) {
                         interstitialRetryAttempt++
                         val delayMs = (5000L * (1 shl (interstitialRetryAttempt - 1))).coerceAtMost(30000L)
-                        Log.d(TAG, "INTERSTITIAL_RETRY_SCHEDULED in ${delayMs}ms (attempt $interstitialRetryAttempt)")
                         mainHandler.postDelayed({
                             loadInterstitial(context.applicationContext)
                         }, delayMs)
@@ -177,38 +158,37 @@ object AdManager {
         )
     }
 
+    fun isInterstitialLoaded(): Boolean {
+        return interstitialAd != null
+    }
+
     fun showInterstitial(
         activity: Activity,
         onAdClosed: () -> Unit
     ) {
         if (activity.isFinishing || activity.isDestroyed) {
-            Log.w(TAG, "INTERSTITIAL_SHOW_SKIPPED: Activity is finishing or destroyed.")
             onAdClosed()
             return
         }
 
-        // Take available ad and clear reference immediately to prevent duplicate shows
         val ad = interstitialAd
         interstitialAd = null
 
         if (ad == null) {
-            Log.w(TAG, "INTERSTITIAL_NOT_LOADED: Proceeding immediately to level complete UI.")
             loadInterstitial(activity.applicationContext)
             onAdClosed()
             return
         }
 
         if (!isShowingFullscreenAd.compareAndSet(false, true)) {
-            Log.w(TAG, "INTERSTITIAL_SHOW_SKIPPED: Another fullscreen ad is already active.")
             onAdClosed()
             return
         }
 
-        val callbackCalled = AtomicBoolean(false)
-
+        val safeCloseOnce = AtomicBoolean(false)
         fun safeClose() {
-            isShowingFullscreenAd.set(false)
-            if (callbackCalled.compareAndSet(false, true)) {
+            if (safeCloseOnce.compareAndSet(false, true)) {
+                isShowingFullscreenAd.set(false)
                 activity.runOnUiThread {
                     onAdClosed()
                 }
@@ -217,11 +197,11 @@ object AdManager {
 
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdShowedFullScreenContent() {
-                Log.d(TAG, "INTERSTITIAL_SHOW_SUCCESS: Ad is now showing on screen.")
+                Log.d(TAG, "Interstitial showed")
             }
 
             override fun onAdDismissedFullScreenContent() {
-                Log.d(TAG, "INTERSTITIAL_DISMISSED: User dismissed the ad. Preloading next interstitial.")
+                Log.d(TAG, "Interstitial dismissed")
                 loadInterstitial(activity.applicationContext)
                 safeClose()
             }
@@ -229,21 +209,18 @@ object AdManager {
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
                 Log.w(
                     TAG,
-                    "INTERSTITIAL_SHOW_FAILED: " +
-                            "errorCode=${error.code}, " +
-                            "errorMessage=${error.message}, " +
-                            "domain=${error.domain}"
+                    "Interstitial show failed: code=${error.code}, message=${error.message}, domain=${error.domain}"
                 )
                 loadInterstitial(activity.applicationContext)
                 safeClose()
             }
 
             override fun onAdImpression() {
-                Log.d(TAG, "INTERSTITIAL_IMPRESSION_RECORDED")
+                Log.d(TAG, "Interstitial impression")
             }
 
             override fun onAdClicked() {
-                Log.d(TAG, "INTERSTITIAL_CLICKED")
+                Log.d(TAG, "Interstitial clicked")
             }
         }
 
@@ -251,7 +228,7 @@ object AdManager {
             try {
                 ad.show(activity)
             } catch (e: Exception) {
-                Log.e(TAG, "INTERSTITIAL_SHOW_EXCEPTION: ${e.message}", e)
+                Log.e(TAG, "Interstitial show exception: ${e.message}", e)
                 loadInterstitial(activity.applicationContext)
                 safeClose()
             }
@@ -264,16 +241,14 @@ object AdManager {
 
     fun loadRewarded(context: Context) {
         if (rewardedAd != null) {
-            Log.d(TAG, "REWARDED_ALREADY_AVAILABLE: Skipping request.")
             return
         }
 
         if (!isRewardedLoading.compareAndSet(false, true)) {
-            Log.d(TAG, "REWARDED_LOAD_IN_PROGRESS: Skipping duplicate request.")
             return
         }
 
-        Log.d(TAG, "REWARDED_LOAD_STARTED: UnitId=$REWARDED_ID")
+        Log.d(TAG, "Rewarded load requested")
 
         RewardedAd.load(
             context,
@@ -284,7 +259,7 @@ object AdManager {
                     rewardedAd = ad
                     isRewardedLoading.set(false)
                     rewardedRetryAttempt = 0
-                    Log.d(TAG, "REWARDED_LOAD_SUCCESS: ResponseInfo=${ad.responseInfo}")
+                    Log.d(TAG, "Rewarded loaded")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
@@ -292,17 +267,12 @@ object AdManager {
                     isRewardedLoading.set(false)
                     Log.w(
                         TAG,
-                        "REWARDED_LOAD_FAILED: " +
-                                "errorCode=${error.code} (${getErrorCodeName(error.code)}), " +
-                                "errorMessage=${error.message}, " +
-                                "domain=${error.domain}, " +
-                                "responseInfo=${error.responseInfo}"
+                        "Rewarded failed: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
                     )
 
                     if (rewardedRetryAttempt < 5) {
                         rewardedRetryAttempt++
                         val delayMs = (5000L * (1 shl (rewardedRetryAttempt - 1))).coerceAtMost(30000L)
-                        Log.d(TAG, "REWARDED_RETRY_SCHEDULED in ${delayMs}ms (attempt $rewardedRetryAttempt)")
                         mainHandler.postDelayed({
                             loadRewarded(context.applicationContext)
                         }, delayMs)
@@ -312,11 +282,14 @@ object AdManager {
         )
     }
 
-    fun showRewarded(
+    fun isRewardedLoaded(): Boolean {
+        return rewardedAd != null
+    }
+
+    fun showRewardedAd(
         activity: Activity,
         onUserEarnedReward: () -> Unit,
-        onAdUnavailable: () -> Unit,
-        onAdDismissed: () -> Unit = {}
+        onAdUnavailable: () -> Unit
     ) {
         if (activity.isFinishing || activity.isDestroyed) {
             onAdUnavailable()
@@ -327,37 +300,32 @@ object AdManager {
         rewardedAd = null
 
         if (ad == null) {
-            Log.w(TAG, "REWARDED_NOT_LOADED: Triggering background reload.")
             loadRewarded(activity.applicationContext)
             onAdUnavailable()
             return
         }
 
         if (!isShowingFullscreenAd.compareAndSet(false, true)) {
-            Log.w(TAG, "REWARDED_SHOW_SKIPPED: Fullscreen ad already displaying.")
             onAdUnavailable()
             return
         }
 
         val rewardGranted = AtomicBoolean(false)
-        val dismissed = AtomicBoolean(false)
+        val dismissedOnce = AtomicBoolean(false)
 
         fun safeDismiss() {
-            isShowingFullscreenAd.set(false)
-            if (dismissed.compareAndSet(false, true)) {
-                activity.runOnUiThread {
-                    onAdDismissed()
-                }
+            if (dismissedOnce.compareAndSet(false, true)) {
+                isShowingFullscreenAd.set(false)
             }
         }
 
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdShowedFullScreenContent() {
-                Log.d(TAG, "REWARDED_SHOW_SUCCESS: Rewarded ad is now visible.")
+                Log.d(TAG, "Rewarded showed")
             }
 
             override fun onAdDismissedFullScreenContent() {
-                Log.d(TAG, "REWARDED_DISMISSED: Preloading next rewarded ad.")
+                Log.d(TAG, "Rewarded dismissed")
                 loadRewarded(activity.applicationContext)
                 safeDismiss()
             }
@@ -365,10 +333,7 @@ object AdManager {
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
                 Log.w(
                     TAG,
-                    "REWARDED_SHOW_FAILED: " +
-                            "errorCode=${error.code}, " +
-                            "errorMessage=${error.message}, " +
-                            "domain=${error.domain}"
+                    "Rewarded show failed: code=${error.code}, message=${error.message}, domain=${error.domain}"
                 )
                 loadRewarded(activity.applicationContext)
                 if (!rewardGranted.get()) {
@@ -380,18 +345,18 @@ object AdManager {
             }
 
             override fun onAdImpression() {
-                Log.d(TAG, "REWARDED_IMPRESSION_RECORDED")
+                Log.d(TAG, "Rewarded impression")
             }
 
             override fun onAdClicked() {
-                Log.d(TAG, "REWARDED_CLICKED")
+                Log.d(TAG, "Rewarded clicked")
             }
         }
 
         activity.runOnUiThread {
             try {
                 ad.show(activity) { rewardItem ->
-                    Log.d(TAG, "REWARDED_USER_EARNED: amount=${rewardItem.amount}, type=${rewardItem.type}")
+                    Log.d(TAG, "Rewarded earned: amount=${rewardItem.amount}, type=${rewardItem.type}")
                     if (rewardGranted.compareAndSet(false, true)) {
                         activity.runOnUiThread {
                             onUserEarnedReward()
@@ -399,10 +364,10 @@ object AdManager {
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "REWARDED_SHOW_EXCEPTION: ${e.message}", e)
+                Log.e(TAG, "Rewarded show exception: ${e.message}", e)
                 loadRewarded(activity.applicationContext)
-                onAdUnavailable()
                 safeDismiss()
+                onAdUnavailable()
             }
         }
     }
@@ -412,11 +377,9 @@ object AdManager {
     // =========================================================
 
     fun loadAppOpenAd(context: Context) {
-        if (appOpenAd != null || !isAppOpenLoading.compareAndSet(false, true)) {
+        if (isAppOpenAdAvailable() || !isAppOpenLoading.compareAndSet(false, true)) {
             return
         }
-
-        Log.d(TAG, "APP_OPEN_LOAD_STARTED: UnitId=$APP_OPEN_ID")
 
         AppOpenAd.load(
             context,
@@ -427,7 +390,7 @@ object AdManager {
                     appOpenAd = ad
                     isAppOpenLoading.set(false)
                     appOpenLoadTime = Date().time
-                    Log.d(TAG, "APP_OPEN_LOAD_SUCCESS: ResponseInfo=${ad.responseInfo}")
+                    Log.d(TAG, "App Open loaded")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
@@ -435,11 +398,7 @@ object AdManager {
                     isAppOpenLoading.set(false)
                     Log.w(
                         TAG,
-                        "APP_OPEN_LOAD_FAILED: " +
-                                "errorCode=${error.code} (${getErrorCodeName(error.code)}), " +
-                                "errorMessage=${error.message}, " +
-                                "domain=${error.domain}, " +
-                                "responseInfo=${error.responseInfo}"
+                        "App Open failed: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
                     )
                 }
             }
@@ -463,7 +422,6 @@ object AdManager {
         }
 
         if (!isAppOpenAdAvailable()) {
-            Log.d(TAG, "APP_OPEN_UNAVAILABLE: Skipping.")
             loadAppOpenAd(activity.applicationContext)
             onAdDismissed?.invoke()
             return
@@ -484,11 +442,11 @@ object AdManager {
 
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdShowedFullScreenContent() {
-                Log.d(TAG, "APP_OPEN_SHOW_SUCCESS")
+                Log.d(TAG, "App Open showed")
             }
 
             override fun onAdDismissedFullScreenContent() {
-                Log.d(TAG, "APP_OPEN_DISMISSED: Preloading next App Open Ad.")
+                Log.d(TAG, "App Open dismissed")
                 isShowingFullscreenAd.set(false)
                 loadAppOpenAd(activity.applicationContext)
                 onAdDismissed?.invoke()
@@ -497,10 +455,7 @@ object AdManager {
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
                 Log.w(
                     TAG,
-                    "APP_OPEN_SHOW_FAILED: " +
-                            "errorCode=${error.code}, " +
-                            "errorMessage=${error.message}, " +
-                            "domain=${error.domain}"
+                    "App Open show failed: code=${error.code}, message=${error.message}, domain=${error.domain}"
                 )
                 isShowingFullscreenAd.set(false)
                 loadAppOpenAd(activity.applicationContext)
@@ -512,7 +467,7 @@ object AdManager {
             try {
                 ad.show(activity)
             } catch (e: Exception) {
-                Log.e(TAG, "APP_OPEN_SHOW_EXCEPTION: ${e.message}", e)
+                Log.e(TAG, "App Open show exception: ${e.message}", e)
                 isShowingFullscreenAd.set(false)
                 loadAppOpenAd(activity.applicationContext)
                 onAdDismissed?.invoke()
@@ -538,8 +493,7 @@ object AdManager {
                     if (isAdLoaded) {
                         Modifier.wrapContentHeight()
                     } else {
-                        // Keep subtle 50dp reserved container while loading, collapse if failed
-                        Modifier.height(50.dp)
+                        Modifier.height(0.dp)
                     }
                 ),
             contentAlignment = Alignment.Center
@@ -549,8 +503,6 @@ object AdManager {
                     .fillMaxWidth()
                     .wrapContentHeight(),
                 factory = { context ->
-                    Log.d(TAG, "BANNER_ADVIEW_CREATED: AdUnitId=$adUnitId")
-
                     AdView(context).apply {
                         setAdSize(AdSize.BANNER)
                         this.adUnitId = adUnitId
@@ -562,25 +514,19 @@ object AdManager {
                         adListener = object : AdListener() {
                             override fun onAdLoaded() {
                                 isAdLoaded = true
-                                Log.d(TAG, "BANNER_LOAD_SUCCESS: AdUnitId=$adUnitId | ResponseInfo=$responseInfo")
+                                Log.d(TAG, "Banner loaded")
                             }
 
                             override fun onAdFailedToLoad(error: LoadAdError) {
                                 isAdLoaded = false
                                 Log.w(
                                     TAG,
-                                    "BANNER_LOAD_FAILED: " +
-                                            "adUnitId=$adUnitId, " +
-                                            "errorCode=${error.code} (${getErrorCodeName(error.code)}), " +
-                                            "errorMessage=${error.message}, " +
-                                            "domain=${error.domain}, " +
-                                            "responseInfo=${error.responseInfo}"
+                                    "Banner failed: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
                                 )
 
                                 // Background safe retry after 30 seconds
                                 mainHandler.postDelayed({
                                     try {
-                                        Log.d(TAG, "BANNER_AUTO_RETRY: Attempting to reload banner.")
                                         loadAd(AdRequest.Builder().build())
                                     } catch (e: Exception) {
                                         Log.w(TAG, "Banner auto-retry exception: ${e.message}")
@@ -589,29 +535,28 @@ object AdManager {
                             }
 
                             override fun onAdOpened() {
-                                Log.d(TAG, "BANNER_OPENED")
+                                Log.d(TAG, "Banner opened")
                             }
 
                             override fun onAdClosed() {
-                                Log.d(TAG, "BANNER_CLOSED")
+                                Log.d(TAG, "Banner closed")
                             }
 
                             override fun onAdImpression() {
-                                Log.d(TAG, "BANNER_IMPRESSION_RECORDED")
+                                Log.d(TAG, "Banner impression")
                             }
 
                             override fun onAdClicked() {
-                                Log.d(TAG, "BANNER_CLICKED")
+                                Log.d(TAG, "Banner clicked")
                             }
                         }
 
-                        Log.d(TAG, "BANNER_LOAD_REQUEST_SENT: AdUnitId=$adUnitId")
+                        Log.d(TAG, "Banner load requested")
                         loadAd(AdRequest.Builder().build())
                     }
                 },
                 onRelease = { adView ->
                     try {
-                        Log.d(TAG, "BANNER_ADVIEW_DESTROYED")
                         adView.destroy()
                     } catch (e: Exception) {
                         Log.w(TAG, "Banner destroy exception: ${e.message}")
@@ -630,19 +575,4 @@ object AdManager {
     fun BottomBannerView(modifier: Modifier = Modifier) {
         BannerAdView(modifier = modifier, adUnitId = BOTTOM_BANNER_ID)
     }
-
-    // =========================================================
-    // HELPER FOR AD ERROR NAMES
-    // =========================================================
-
-    private fun getErrorCodeName(code: Int): String {
-        return when (code) {
-            AdRequest.ERROR_CODE_INTERNAL_ERROR -> "ERROR_CODE_INTERNAL_ERROR (0)"
-            AdRequest.ERROR_CODE_INVALID_REQUEST -> "ERROR_CODE_INVALID_REQUEST (1)"
-            AdRequest.ERROR_CODE_NETWORK_ERROR -> "ERROR_CODE_NETWORK_ERROR (2)"
-            AdRequest.ERROR_CODE_NO_FILL -> "ERROR_CODE_NO_FILL (3)"
-            else -> "CODE_$code"
-        }
-    }
 }
-
