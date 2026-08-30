@@ -114,7 +114,7 @@ class GameViewModel(
         val state = _uiState.value
         val level = state.currentLevel ?: return
 
-        if (state.lives <= 0 || state.isLevelCompleted || state.escapingArrowIds.contains(arrow.id)) {
+        if (state.lives <= 0 || state.isLevelCompleted || state.escapingArrowIds.isNotEmpty() || state.blockedArrowId != null) {
             return
         }
 
@@ -137,7 +137,7 @@ class GameViewModel(
             }
 
             viewModelScope.launch {
-                delay(400)
+                delay(350)
 
                 val updatedArrows = _uiState.value.remainingArrows.filter { it.id != arrow.id }
                 val isCompleted = updatedArrows.isEmpty()
