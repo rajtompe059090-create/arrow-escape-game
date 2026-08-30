@@ -57,6 +57,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -90,5 +91,5 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     // Google Mobile Ads SDK
-    implementation("com.google.android.gms:play-services-ads:25.3.0")
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
 }

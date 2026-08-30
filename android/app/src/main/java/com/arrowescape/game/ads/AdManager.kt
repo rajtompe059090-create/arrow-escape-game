@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,7 +17,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.arrowescape.game.BuildConfig
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
@@ -25,6 +28,7 @@ import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.RequestConfiguration
 import com.google.android.gms.ads.appopen.AppOpenAd
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
@@ -39,36 +43,19 @@ object AdManager {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     // =========================================================
-    // ADMOB APP ID
+    // ADMOB APPLICATION & AD UNIT IDS (PRESERVED EXACTLY)
     // =========================================================
 
-    const val APP_ID =
-        "ca-app-pub-6146868530948467~3047670393"
+    const val APP_ID = "ca-app-pub-6146868530948467~3047670393"
+    const val BANNER_ID = "ca-app-pub-6146868530948467/4890772086"
+    const val TOP_BANNER_ID = BANNER_ID
+    const val BOTTOM_BANNER_ID = BANNER_ID
+    const val INTERSTITIAL_ID = "ca-app-pub-6146868530948467/8819293283"
+    const val REWARDED_ID = "ca-app-pub-6146868530948467/5664321378"
+    const val APP_OPEN_ID = "ca-app-pub-6146868530948467/2935989754"
 
     // =========================================================
-    // REAL AD UNIT IDS (PRESERVED EXACTLY)
-    // =========================================================
-
-    const val BANNER_ID =
-        "ca-app-pub-6146868530948467/4890772086"
-
-    const val TOP_BANNER_ID =
-        BANNER_ID
-
-    const val BOTTOM_BANNER_ID =
-        BANNER_ID
-
-    const val INTERSTITIAL_ID =
-        "ca-app-pub-6146868530948467/8819293283"
-
-    const val REWARDED_ID =
-        "ca-app-pub-6146868530948467/5664321378"
-
-    const val APP_OPEN_ID =
-        "ca-app-pub-6146868530948467/2935989754"
-
-    // =========================================================
-    // STATE
+    // RUNTIME STATE
     // =========================================================
 
     private val isInitialized = AtomicBoolean(false)
@@ -90,45 +77,67 @@ object AdManager {
     private var appOpenLoadTime: Long = 0L
 
     // =========================================================
-    // INITIALIZE
+    // 1. ADMOB INITIALIZATION
     // =========================================================
 
     fun initialize(context: Context) {
         if (!isInitialized.compareAndSet(false, true)) {
+            Log.d(TAG, "AdManager already initialized. Skipping duplicate call.")
             return
         }
 
         try {
-            Log.d(TAG, "Initializing MobileAds SDK: $APP_ID")
+            Log.d(TAG, "==================================================")
+            Log.d(TAG, "ADMOB_INITIALIZATION_STARTED: AppId=$APP_ID")
+
+            // Configure Test Device Support for DEBUG builds
+            if (BuildConfig.DEBUG) {
+                val testDeviceIds = listOf(
+                    AdRequest.DEVICE_ID_EMULATOR
+                )
+                val configuration = RequestConfiguration.Builder()
+                    .setTestDeviceIds(testDeviceIds)
+                    .build()
+                MobileAds.setRequestConfiguration(configuration)
+                Log.d(TAG, "DEBUG_BUILD: Configured AdMob RequestConfiguration with emulator test device support")
+            }
 
             MobileAds.initialize(context) { status ->
-                Log.d(TAG, "MOBILE_ADS_INITIALIZED: $status")
+                Log.d(TAG, "ADMOB_INITIALIZATION_COMPLETED")
+                for ((adapterClass, adapterStatus) in status.adapterStatusMap) {
+                    Log.d(
+                        TAG,
+                        "  Adapter: $adapterClass | State: ${adapterStatus.initializationState} | Description: ${adapterStatus.description} | Latency: ${adapterStatus.latency}ms"
+                    )
+                }
+                Log.d(TAG, "==================================================")
 
+                // Preload all ad formats safely
                 loadInterstitial(context.applicationContext)
                 loadRewarded(context.applicationContext)
                 loadAppOpenAd(context.applicationContext)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "AdMob initialization error: ${e.message}", e)
+            Log.e(TAG, "AdMob initialization encountered error: ${e.message}", e)
         }
     }
 
     // =========================================================
-    // INTERSTITIAL (LEVEL COMPLETE)
+    // 2. INTERSTITIAL (LEVEL COMPLETE FLOW)
     // =========================================================
 
     fun loadInterstitial(context: Context) {
         if (interstitialAd != null) {
-            Log.d(TAG, "INTERSTITIAL_ALREADY_LOADED")
+            Log.d(TAG, "INTERSTITIAL_ALREADY_AVAILABLE: Skipping request.")
             return
         }
 
         if (!isInterstitialLoading.compareAndSet(false, true)) {
-            Log.d(TAG, "INTERSTITIAL_ALREADY_LOADING")
+            Log.d(TAG, "INTERSTITIAL_LOAD_IN_PROGRESS: Skipping duplicate request.")
             return
         }
 
-        Log.d(TAG, "INTERSTITIAL_LOAD_STARTED: $INTERSTITIAL_ID")
+        Log.d(TAG, "INTERSTITIAL_LOAD_STARTED: UnitId=$INTERSTITIAL_ID")
 
         InterstitialAd.load(
             context,
@@ -139,18 +148,26 @@ object AdManager {
                     interstitialAd = ad
                     isInterstitialLoading.set(false)
                     interstitialRetryAttempt = 0
-                    Log.d(TAG, "INTERSTITIAL_LOADED")
+                    Log.d(TAG, "INTERSTITIAL_LOAD_SUCCESS: ResponseInfo=${ad.responseInfo}")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     interstitialAd = null
                     isInterstitialLoading.set(false)
-                    Log.w(TAG, "INTERSTITIAL_LOAD_FAILED: code=${error.code}, message=${error.message}")
+                    Log.w(
+                        TAG,
+                        "INTERSTITIAL_LOAD_FAILED: " +
+                                "errorCode=${error.code} (${getErrorCodeName(error.code)}), " +
+                                "errorMessage=${error.message}, " +
+                                "domain=${error.domain}, " +
+                                "responseInfo=${error.responseInfo}"
+                    )
 
                     // Exponential backoff retry (5s, 10s, 20s, max 30s) up to 5 attempts
                     if (interstitialRetryAttempt < 5) {
                         interstitialRetryAttempt++
                         val delayMs = (5000L * (1 shl (interstitialRetryAttempt - 1))).coerceAtMost(30000L)
+                        Log.d(TAG, "INTERSTITIAL_RETRY_SCHEDULED in ${delayMs}ms (attempt $interstitialRetryAttempt)")
                         mainHandler.postDelayed({
                             loadInterstitial(context.applicationContext)
                         }, delayMs)
@@ -170,19 +187,19 @@ object AdManager {
             return
         }
 
-        // Take current ad and immediately clear reference to prevent duplicate show
+        // Take available ad and clear reference immediately to prevent duplicate shows
         val ad = interstitialAd
         interstitialAd = null
 
         if (ad == null) {
-            Log.w(TAG, "INTERSTITIAL_UNAVAILABLE: Proceeding to level completion dialog immediately.")
+            Log.w(TAG, "INTERSTITIAL_NOT_LOADED: Proceeding immediately to level complete UI.")
             loadInterstitial(activity.applicationContext)
             onAdClosed()
             return
         }
 
         if (!isShowingFullscreenAd.compareAndSet(false, true)) {
-            Log.w(TAG, "INTERSTITIAL_SHOW_SKIPPED: Fullscreen ad already showing.")
+            Log.w(TAG, "INTERSTITIAL_SHOW_SKIPPED: Another fullscreen ad is already active.")
             onAdClosed()
             return
         }
@@ -200,19 +217,33 @@ object AdManager {
 
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdShowedFullScreenContent() {
-                Log.d(TAG, "INTERSTITIAL_SHOWING")
+                Log.d(TAG, "INTERSTITIAL_SHOW_SUCCESS: Ad is now showing on screen.")
             }
 
             override fun onAdDismissedFullScreenContent() {
-                Log.d(TAG, "INTERSTITIAL_DISMISSED")
+                Log.d(TAG, "INTERSTITIAL_DISMISSED: User dismissed the ad. Preloading next interstitial.")
                 loadInterstitial(activity.applicationContext)
                 safeClose()
             }
 
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
-                Log.w(TAG, "INTERSTITIAL_SHOW_FAILED: code=${error.code}, message=${error.message}")
+                Log.w(
+                    TAG,
+                    "INTERSTITIAL_SHOW_FAILED: " +
+                            "errorCode=${error.code}, " +
+                            "errorMessage=${error.message}, " +
+                            "domain=${error.domain}"
+                )
                 loadInterstitial(activity.applicationContext)
                 safeClose()
+            }
+
+            override fun onAdImpression() {
+                Log.d(TAG, "INTERSTITIAL_IMPRESSION_RECORDED")
+            }
+
+            override fun onAdClicked() {
+                Log.d(TAG, "INTERSTITIAL_CLICKED")
             }
         }
 
@@ -228,19 +259,21 @@ object AdManager {
     }
 
     // =========================================================
-    // REWARDED / HINT
+    // 3. REWARDED / HINT FLOW
     // =========================================================
 
     fun loadRewarded(context: Context) {
         if (rewardedAd != null) {
+            Log.d(TAG, "REWARDED_ALREADY_AVAILABLE: Skipping request.")
             return
         }
 
         if (!isRewardedLoading.compareAndSet(false, true)) {
+            Log.d(TAG, "REWARDED_LOAD_IN_PROGRESS: Skipping duplicate request.")
             return
         }
 
-        Log.d(TAG, "REWARDED_LOAD_STARTED: $REWARDED_ID")
+        Log.d(TAG, "REWARDED_LOAD_STARTED: UnitId=$REWARDED_ID")
 
         RewardedAd.load(
             context,
@@ -251,17 +284,25 @@ object AdManager {
                     rewardedAd = ad
                     isRewardedLoading.set(false)
                     rewardedRetryAttempt = 0
-                    Log.d(TAG, "REWARDED_LOADED")
+                    Log.d(TAG, "REWARDED_LOAD_SUCCESS: ResponseInfo=${ad.responseInfo}")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     rewardedAd = null
                     isRewardedLoading.set(false)
-                    Log.w(TAG, "REWARDED_LOAD_FAILED: code=${error.code}, message=${error.message}")
+                    Log.w(
+                        TAG,
+                        "REWARDED_LOAD_FAILED: " +
+                                "errorCode=${error.code} (${getErrorCodeName(error.code)}), " +
+                                "errorMessage=${error.message}, " +
+                                "domain=${error.domain}, " +
+                                "responseInfo=${error.responseInfo}"
+                    )
 
                     if (rewardedRetryAttempt < 5) {
                         rewardedRetryAttempt++
                         val delayMs = (5000L * (1 shl (rewardedRetryAttempt - 1))).coerceAtMost(30000L)
+                        Log.d(TAG, "REWARDED_RETRY_SCHEDULED in ${delayMs}ms (attempt $rewardedRetryAttempt)")
                         mainHandler.postDelayed({
                             loadRewarded(context.applicationContext)
                         }, delayMs)
@@ -286,14 +327,14 @@ object AdManager {
         rewardedAd = null
 
         if (ad == null) {
-            Log.w(TAG, "REWARDED_NOT_READY: Triggering load.")
+            Log.w(TAG, "REWARDED_NOT_LOADED: Triggering background reload.")
             loadRewarded(activity.applicationContext)
             onAdUnavailable()
             return
         }
 
         if (!isShowingFullscreenAd.compareAndSet(false, true)) {
-            Log.w(TAG, "REWARDED_SHOW_SKIPPED: Fullscreen ad already showing.")
+            Log.w(TAG, "REWARDED_SHOW_SKIPPED: Fullscreen ad already displaying.")
             onAdUnavailable()
             return
         }
@@ -312,17 +353,23 @@ object AdManager {
 
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdShowedFullScreenContent() {
-                Log.d(TAG, "REWARDED_SHOWED")
+                Log.d(TAG, "REWARDED_SHOW_SUCCESS: Rewarded ad is now visible.")
             }
 
             override fun onAdDismissedFullScreenContent() {
-                Log.d(TAG, "REWARDED_DISMISSED")
+                Log.d(TAG, "REWARDED_DISMISSED: Preloading next rewarded ad.")
                 loadRewarded(activity.applicationContext)
                 safeDismiss()
             }
 
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
-                Log.w(TAG, "REWARDED_SHOW_FAILED: ${error.message}")
+                Log.w(
+                    TAG,
+                    "REWARDED_SHOW_FAILED: " +
+                            "errorCode=${error.code}, " +
+                            "errorMessage=${error.message}, " +
+                            "domain=${error.domain}"
+                )
                 loadRewarded(activity.applicationContext)
                 if (!rewardGranted.get()) {
                     activity.runOnUiThread {
@@ -331,12 +378,20 @@ object AdManager {
                 }
                 safeDismiss()
             }
+
+            override fun onAdImpression() {
+                Log.d(TAG, "REWARDED_IMPRESSION_RECORDED")
+            }
+
+            override fun onAdClicked() {
+                Log.d(TAG, "REWARDED_CLICKED")
+            }
         }
 
         activity.runOnUiThread {
             try {
-                ad.show(activity) {
-                    Log.d(TAG, "REWARDED_USER_EARNED")
+                ad.show(activity) { rewardItem ->
+                    Log.d(TAG, "REWARDED_USER_EARNED: amount=${rewardItem.amount}, type=${rewardItem.type}")
                     if (rewardGranted.compareAndSet(false, true)) {
                         activity.runOnUiThread {
                             onUserEarnedReward()
@@ -353,7 +408,7 @@ object AdManager {
     }
 
     // =========================================================
-    // APP OPEN
+    // 4. APP OPEN AD
     // =========================================================
 
     fun loadAppOpenAd(context: Context) {
@@ -361,7 +416,7 @@ object AdManager {
             return
         }
 
-        Log.d(TAG, "APP_OPEN_LOAD_STARTED: $APP_OPEN_ID")
+        Log.d(TAG, "APP_OPEN_LOAD_STARTED: UnitId=$APP_OPEN_ID")
 
         AppOpenAd.load(
             context,
@@ -372,13 +427,20 @@ object AdManager {
                     appOpenAd = ad
                     isAppOpenLoading.set(false)
                     appOpenLoadTime = Date().time
-                    Log.d(TAG, "APP_OPEN_LOADED")
+                    Log.d(TAG, "APP_OPEN_LOAD_SUCCESS: ResponseInfo=${ad.responseInfo}")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     appOpenAd = null
                     isAppOpenLoading.set(false)
-                    Log.w(TAG, "APP_OPEN_LOAD_FAILED: code=${error.code}, message=${error.message}")
+                    Log.w(
+                        TAG,
+                        "APP_OPEN_LOAD_FAILED: " +
+                                "errorCode=${error.code} (${getErrorCodeName(error.code)}), " +
+                                "errorMessage=${error.message}, " +
+                                "domain=${error.domain}, " +
+                                "responseInfo=${error.responseInfo}"
+                    )
                 }
             }
         )
@@ -422,18 +484,24 @@ object AdManager {
 
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdShowedFullScreenContent() {
-                Log.d(TAG, "APP_OPEN_SHOWED")
+                Log.d(TAG, "APP_OPEN_SHOW_SUCCESS")
             }
 
             override fun onAdDismissedFullScreenContent() {
-                Log.d(TAG, "APP_OPEN_DISMISSED")
+                Log.d(TAG, "APP_OPEN_DISMISSED: Preloading next App Open Ad.")
                 isShowingFullscreenAd.set(false)
                 loadAppOpenAd(activity.applicationContext)
                 onAdDismissed?.invoke()
             }
 
             override fun onAdFailedToShowFullScreenContent(error: AdError) {
-                Log.w(TAG, "APP_OPEN_SHOW_FAILED: ${error.message}")
+                Log.w(
+                    TAG,
+                    "APP_OPEN_SHOW_FAILED: " +
+                            "errorCode=${error.code}, " +
+                            "errorMessage=${error.message}, " +
+                            "domain=${error.domain}"
+                )
                 isShowingFullscreenAd.set(false)
                 loadAppOpenAd(activity.applicationContext)
                 onAdDismissed?.invoke()
@@ -453,43 +521,7 @@ object AdManager {
     }
 
     // =========================================================
-    // ADAPTIVE BANNER SIZE HELPER
-    // =========================================================
-
-    private fun findActivity(context: Context): Activity? {
-        var currentContext = context
-        while (currentContext is android.content.ContextWrapper) {
-            if (currentContext is Activity) {
-                return currentContext
-            }
-            currentContext = currentContext.baseContext
-        }
-        return null
-    }
-
-    private fun getAdaptiveAdSize(context: Context): AdSize {
-        return try {
-            val act = findActivity(context)
-            val displayMetrics = act?.resources?.displayMetrics ?: context.resources.displayMetrics
-            val density = displayMetrics.density
-            var widthPixels = displayMetrics.widthPixels.toFloat()
-            if (widthPixels <= 0f) {
-                widthPixels = 320f * density
-            }
-            val adWidthDp = (widthPixels / density).toInt().coerceAtLeast(320)
-
-            AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-                act ?: context,
-                adWidthDp
-            ) ?: AdSize.BANNER
-        } catch (e: Exception) {
-            Log.w(TAG, "Adaptive banner sizing fallback: ${e.message}")
-            AdSize.BANNER
-        }
-    }
-
-    // =========================================================
-    // BANNER VIEW (Adaptive Banner)
+    // 5. BANNER AD VIEW (REAL ANDROID ADVIEW WITH AdSize.BANNER)
     // =========================================================
 
     @Composable
@@ -497,12 +529,19 @@ object AdManager {
         modifier: Modifier = Modifier,
         adUnitId: String = BANNER_ID
     ) {
-        var isLoaded by remember { mutableStateOf(false) }
+        var isAdLoaded by remember { mutableStateOf(false) }
 
         Box(
             modifier = modifier
                 .fillMaxWidth()
-                .wrapContentHeight(),
+                .then(
+                    if (isAdLoaded) {
+                        Modifier.wrapContentHeight()
+                    } else {
+                        // Keep subtle 50dp reserved container while loading, collapse if failed
+                        Modifier.height(50.dp)
+                    }
+                ),
             contentAlignment = Alignment.Center
         ) {
             AndroidView(
@@ -510,10 +549,10 @@ object AdManager {
                     .fillMaxWidth()
                     .wrapContentHeight(),
                 factory = { context ->
-                    Log.d(TAG, "BANNER_CREATED")
+                    Log.d(TAG, "BANNER_ADVIEW_CREATED: AdUnitId=$adUnitId")
+
                     AdView(context).apply {
-                        val adSize = getAdaptiveAdSize(context)
-                        setAdSize(adSize)
+                        setAdSize(AdSize.BANNER)
                         this.adUnitId = adUnitId
                         layoutParams = ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -522,33 +561,57 @@ object AdManager {
 
                         adListener = object : AdListener() {
                             override fun onAdLoaded() {
-                                isLoaded = true
-                                Log.d(TAG, "BANNER_LOADED")
+                                isAdLoaded = true
+                                Log.d(TAG, "BANNER_LOAD_SUCCESS: AdUnitId=$adUnitId | ResponseInfo=$responseInfo")
                             }
 
                             override fun onAdFailedToLoad(error: LoadAdError) {
-                                isLoaded = false
+                                isAdLoaded = false
                                 Log.w(
                                     TAG,
-                                    "BANNER_FAILED code=${error.code} message=${error.message}"
+                                    "BANNER_LOAD_FAILED: " +
+                                            "adUnitId=$adUnitId, " +
+                                            "errorCode=${error.code} (${getErrorCodeName(error.code)}), " +
+                                            "errorMessage=${error.message}, " +
+                                            "domain=${error.domain}, " +
+                                            "responseInfo=${error.responseInfo}"
                                 )
-                                // Schedule a safe background retry after 30s without spamming
+
+                                // Background safe retry after 30 seconds
                                 mainHandler.postDelayed({
                                     try {
+                                        Log.d(TAG, "BANNER_AUTO_RETRY: Attempting to reload banner.")
                                         loadAd(AdRequest.Builder().build())
                                     } catch (e: Exception) {
-                                        Log.w(TAG, "Banner retry load exception: ${e.message}")
+                                        Log.w(TAG, "Banner auto-retry exception: ${e.message}")
                                     }
                                 }, 30000L)
                             }
+
+                            override fun onAdOpened() {
+                                Log.d(TAG, "BANNER_OPENED")
+                            }
+
+                            override fun onAdClosed() {
+                                Log.d(TAG, "BANNER_CLOSED")
+                            }
+
+                            override fun onAdImpression() {
+                                Log.d(TAG, "BANNER_IMPRESSION_RECORDED")
+                            }
+
+                            override fun onAdClicked() {
+                                Log.d(TAG, "BANNER_CLICKED")
+                            }
                         }
 
-                        Log.d(TAG, "BANNER_LOAD_STARTED")
+                        Log.d(TAG, "BANNER_LOAD_REQUEST_SENT: AdUnitId=$adUnitId")
                         loadAd(AdRequest.Builder().build())
                     }
                 },
                 onRelease = { adView ->
                     try {
+                        Log.d(TAG, "BANNER_ADVIEW_DESTROYED")
                         adView.destroy()
                     } catch (e: Exception) {
                         Log.w(TAG, "Banner destroy exception: ${e.message}")
@@ -558,7 +621,6 @@ object AdManager {
         }
     }
 
-    // Backwards-compatible aliases for top / bottom instances
     @Composable
     fun TopBannerView(modifier: Modifier = Modifier) {
         BannerAdView(modifier = modifier, adUnitId = TOP_BANNER_ID)
@@ -568,4 +630,19 @@ object AdManager {
     fun BottomBannerView(modifier: Modifier = Modifier) {
         BannerAdView(modifier = modifier, adUnitId = BOTTOM_BANNER_ID)
     }
+
+    // =========================================================
+    // HELPER FOR AD ERROR NAMES
+    // =========================================================
+
+    private fun getErrorCodeName(code: Int): String {
+        return when (code) {
+            AdRequest.ERROR_CODE_INTERNAL_ERROR -> "ERROR_CODE_INTERNAL_ERROR (0)"
+            AdRequest.ERROR_CODE_INVALID_REQUEST -> "ERROR_CODE_INVALID_REQUEST (1)"
+            AdRequest.ERROR_CODE_NETWORK_ERROR -> "ERROR_CODE_NETWORK_ERROR (2)"
+            AdRequest.ERROR_CODE_NO_FILL -> "ERROR_CODE_NO_FILL (3)"
+            else -> "CODE_$code"
+        }
+    }
 }
+
