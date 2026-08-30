@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Glowing Center Plate -->
+    <path
+        android:fillColor="#15FFFFFF"
+        android:pathData="M38,38h32v32h-32z" />
+
+    <!-- 1. TOP ESCAPE ARROW (Vibrant Cyan) -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M54,23 L44,35 L50,35 L50,47 L58,47 L58,35 L64,35 Z" />
+    <path
+        android:fillColor="#22D3EE"
+        android:pathData="M54,23 L44,35 L54,35 Z" />
+
+    <!-- 2. RIGHT ESCAPE ARROW (Bright Royal Blue) -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M85,54 L73,44 L73,50 L61,50 L61,58 L73,58 L73,64 Z" />
+    <path
+        android:fillColor="#60A5FA"
+        android:pathData="M85,54 L73,44 L73,54 Z" />
+
+    <!-- 3. BOTTOM ESCAPE ARROW (Neon Emerald) -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M54,85 L64,73 L58,73 L58,61 L50,61 L50,73 L44,73 Z" />
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M54,85 L64,73 L54,73 Z" />
+
+    <!-- 4. LEFT ESCAPE ARROW (Sunset Orange/Amber) -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M23,54 L35,64 L35,58 L47,58 L47,50 L35,50 L35,44 Z" />
+    <path
+        android:fillColor="#FB923C"
+        android:pathData="M23,54 L35,64 L35,54 Z" />
+
+    <!-- 5. CENTER REWARD GOLDEN STAR COIN (Win Rewards Badge) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,46 L56.5,51.5 L62.5,52.2 L58,56.3 L59.3,62.2 L54,59.2 L48.7,62.2 L50,56.3 L45.5,52.2 L51.5,51.5 Z" />
+    <path
+        android:fillColor="#FDE047"
+        android:pathData="M54,48 L55.8,52 L60.2,52.5 L57,55.5 L57.9,59.8 L54,57.5 L50.1,59.8 L51,55.5 L47.8,52.5 L52.2,52 Z" />
+
+    <!-- Sparkle Accents -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,30 L35,32.5 L37.5,33.5 L35,34.5 L34,37 L33,34.5 L30.5,33.5 L33,32.5 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M74,74 L75,76.5 L77.5,77.5 L75,78.5 L74,81 L73,78.5 L70.5,77.5 L73,76.5 Z" />
+
+</vector>

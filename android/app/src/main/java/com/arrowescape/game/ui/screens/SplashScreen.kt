@@ -82,6 +82,16 @@ fun SplashScreen(
             )
 
             Text(
+                text = "WIN REWARDS",
+                fontSize = 14.sp,
+                color = Color(0xFFFDE047),
+                fontWeight = FontWeight.Black,
+                letterSpacing = 3.sp
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
                 text = "Tap • Solve • Escape",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFBAE6FD),

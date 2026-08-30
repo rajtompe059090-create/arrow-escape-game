@@ -191,24 +191,35 @@ fun HomeScreen(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(0xFF0284C7),
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(26.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.ArrowForward,
                                 contentDescription = null,
                                 tint = Color.White,
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
-                    Text(
-                        text = "Arrow Escape",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF0F172A),
-                        letterSpacing = (-0.5).sp
-                    )
+                    Column(verticalArrangement = Arrangement.Center) {
+                        Text(
+                            text = "Arrow Escape",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF0F172A),
+                            letterSpacing = (-0.5).sp,
+                            lineHeight = 15.sp
+                        )
+                        Text(
+                            text = "Win Rewards",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF16A34A),
+                            letterSpacing = 0.2.sp,
+                            lineHeight = 11.sp
+                        )
+                    }
                 }
 
                 // Right Action: Settings Quick Access

@@ -1,5 +1,5 @@
 {
-  "name": "Arrow Escape",
+  "name": "Arrow Escape: Win Rewards",
   "description": "An original tap-away arrow puzzle game with dynamic procedural levels (Easy to Extreme), real ₹ earnings, wallet tracking, daily rewards, and full Android Jetpack Compose source code.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

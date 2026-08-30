@@ -149,9 +149,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <path d="m12 5 7 7-7 7" />
               </svg>
             </div>
-            <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900">
-              Arrow Escape
-            </h1>
+            <div className="flex flex-col">
+              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-none">
+                Arrow Escape
+              </h1>
+              <span className="text-[10px] font-extrabold text-emerald-600 tracking-wide uppercase leading-tight">
+                Win Rewards
+              </span>
+            </div>
           </div>
 
           {/* Right Action: Settings Quick Access */}
