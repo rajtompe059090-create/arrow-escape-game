@@ -616,11 +616,13 @@ object AdManager {
 
     @Composable
     fun LeftBannerView(modifier: Modifier = Modifier) {
-        BannerAdView(modifier = modifier, placementTag = "Left banner", adUnitId = BANNER_ID)
+        // Safe side area: Standard Google Banners (320x50) are horizontal and cannot fit into narrow side margins
+        // on portrait phones without distorting or compressing the playable puzzle board. Keeping this non-intrusive.
     }
 
     @Composable
     fun RightBannerView(modifier: Modifier = Modifier) {
-        BannerAdView(modifier = modifier, placementTag = "Right banner", adUnitId = BANNER_ID)
+        // Safe side area: Standard Google Banners (320x50) are horizontal and cannot fit into narrow side margins
+        // on portrait phones without distorting or compressing the playable puzzle board. Keeping this non-intrusive.
     }
 }

@@ -275,27 +275,25 @@ fun GameScreen(
             }
 
             // =================================================
-            // 2 & 3. LEFT BANNER, PUZZLE BOARD, RIGHT BANNER
+            // 2 & 3. GAMEPLAY PUZZLE AREA (CENTERED & FULLY PLAYABLE)
             // =================================================
 
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
-                // LEFT BANNER AD (Side area beside the puzzle)
-                AdManager.LeftBannerView(
-                    modifier = Modifier.padding(end = 2.dp)
-                )
+                // LEFT SIDE AREA
+                AdManager.LeftBannerView()
 
-                // PLAYABLE PUZZLE BOARD (CENTER)
+                // PLAYABLE PUZZLE BOARD (CENTERED, PRIORITY, FULL SAFE TOUCH AREA)
                 Box(
                     modifier = Modifier
-                        .weight(1f, fill = false)
-                        .padding(horizontal = 2.dp),
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     PuzzleBoard(
@@ -309,10 +307,8 @@ fun GameScreen(
                     )
                 }
 
-                // RIGHT BANNER AD (Side area beside the puzzle)
-                AdManager.RightBannerView(
-                    modifier = Modifier.padding(start = 2.dp)
-                )
+                // RIGHT SIDE AREA
+                AdManager.RightBannerView()
             }
 
             // =================================================
