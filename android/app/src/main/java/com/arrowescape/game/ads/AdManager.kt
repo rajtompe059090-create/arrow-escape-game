@@ -48,7 +48,10 @@ object AdManager {
     // =========================================================
 
     const val APP_ID = "ca-app-pub-6146868530948467~3047670393"
-    const val BANNER_ID = "ca-app-pub-6146868530948467/4890772086"
+    // Official Google Android Test Banner Ad Unit ID (For Testing Phase)
+    const val TEST_BANNER_ID = "ca-app-pub-3940256099942544/6300978111"
+    const val PROD_BANNER_ID = "ca-app-pub-6146868530948467/4890772086"
+    const val BANNER_ID = TEST_BANNER_ID
     const val TOP_BANNER_ID = BANNER_ID
     const val BOTTOM_BANNER_ID = BANNER_ID
     const val INTERSTITIAL_ID = "ca-app-pub-6146868530948467/8819293283"
@@ -592,6 +595,7 @@ object AdManager {
                 onRelease = { adView ->
                     try {
                         adView.destroy()
+                        Log.d(TAG, "$placementTag destroyed")
                     } catch (e: Exception) {
                         Log.w(TAG, "$placementTag destroy exception: ${e.message}")
                     }

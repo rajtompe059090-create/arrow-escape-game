@@ -85,6 +85,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.arrowescape.game.ads.AdManager
 import com.arrowescape.game.model.Difficulty
 import com.arrowescape.game.model.EarningTransaction
 import com.arrowescape.game.model.TransactionType
@@ -534,6 +535,14 @@ fun WalletDialog(
                 ) {
                     Text(text = "Close", fontWeight = FontWeight.Bold)
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Wallet Dialog Banner"
+                )
             }
         }
     }
@@ -974,6 +983,14 @@ fun WithdrawDialog(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Withdraw Dialog Banner"
+                )
             }
         }
     }
@@ -1178,6 +1195,14 @@ fun DailyRewardDialog(
                         Text(text = "Come Back Tomorrow", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Daily Reward Dialog Banner"
+                )
             }
         }
     }
@@ -1351,6 +1376,14 @@ fun WeeklyDashboardDialog(
                 ) {
                     Text(text = "Close", fontWeight = FontWeight.Bold)
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Weekly Dashboard Dialog Banner"
+                )
             }
         }
     }
@@ -1544,6 +1577,14 @@ fun RewardsDialog(
                 ) {
                     Text(text = "Close", fontWeight = FontWeight.Bold)
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Rewards Dialog Banner"
+                )
             }
         }
     }
@@ -1680,6 +1721,14 @@ fun SupportDialog(
                 ) {
                     Text(text = "Close", fontWeight = FontWeight.Bold)
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Support Dialog Banner"
+                )
             }
         }
     }
@@ -1918,6 +1967,14 @@ fun SettingsDialog(
                 ) {
                     Text(text = "Close", fontWeight = FontWeight.Bold)
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Settings Dialog Banner"
+                )
             }
         }
     }
@@ -2062,6 +2119,14 @@ fun LevelCompleteDialog(
                         Icon(Icons.Default.ArrowForward, contentDescription = null)
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Level Complete Dialog Banner"
+                )
             }
         }
     }
@@ -2148,6 +2213,14 @@ fun GameOverDialog(
                 ) {
                     Text(text = "Back to Home", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Game Over Dialog Banner"
+                )
             }
         }
     }
@@ -2969,6 +3042,14 @@ fun ProfileDialog(
                 ) {
                     Text(text = "Close", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Modal Bottom Banner Ad
+                AdManager.BannerAdView(
+                    modifier = Modifier.fillMaxWidth(),
+                    placementTag = "Profile Dialog Banner"
+                )
             }
         }
     }
