@@ -707,7 +707,7 @@ fun WithdrawalSuccessPopup(
 @Composable
 fun WithdrawDialog(
     uiState: GameUiState,
-    onRequestWithdrawal: (amount: Double, upiId: String, onResult: (Boolean, String) -> Unit) -> Unit,
+    onRequestWithdrawal: (amount: Double, upiId: String, onResult: (com.arrowescape.game.data.WithdrawalResult) -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -905,29 +905,12 @@ fun WithdrawDialog(
 
                         isProcessing = true
                         statusMessage = "Submitting withdrawal request..."
-                        onRequestWithdrawal(amount, upiIdText) { success, msg ->
+                        onRequestWithdrawal(amount, upiIdText) { res ->
                             isProcessing = false
-                            isSuccess = success
-                            statusMessage = msg
-                            if (success) {
-                                // Extract details or construct confirmation payload
-                                val atIdx = upiIdText.indexOf('@')
-                                val handle = if (atIdx > 0) upiIdText.substring(0, atIdx) else upiIdText
-                                val dom = if (atIdx > 0) upiIdText.substring(atIdx) else ""
-                                val masked = (if (handle.length <= 2) handle.take(1) else handle.take(2)) + "***" + dom
-                                
-                                val dateStr = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
-                                val randomPart = UUID.randomUUID().toString().replace("-", "").take(8).uppercase(Locale.US)
-                                val wId = "WD-$dateStr-$randomPart"
-
-                                successfulResult = com.arrowescape.game.data.WithdrawalResult(
-                                    success = true,
-                                    message = msg,
-                                    withdrawalId = wId,
-                                    amount = amount,
-                                    maskedUpi = masked,
-                                    status = "SUCCESSFUL"
-                                )
+                            isSuccess = res.success
+                            statusMessage = res.message
+                            if (res.success) {
+                                successfulResult = res
                                 upiIdText = ""
                             }
                         }

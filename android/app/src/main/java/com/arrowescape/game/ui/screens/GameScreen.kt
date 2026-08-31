@@ -71,7 +71,7 @@ fun GameScreen(
     }
 
     // =========================================================
-    // LEVEL COMPLETE -> VIDEO AD (EVERY 5 LEVELS) -> COMPLETE DIALOG
+    // LEVEL COMPLETE -> INTERSTITIAL (EVERY LEVEL) -> COMPLETE DIALOG
     // =========================================================
 
     LaunchedEffect(
@@ -79,8 +79,7 @@ fun GameScreen(
         level.id
     ) {
         if (uiState.isLevelCompleted) {
-            val shouldShowVideoAd = (level.id % 5 == 0)
-            if (shouldShowVideoAd && activity != null) {
+            if (activity != null) {
                 isShowingCompleteDialog = false
                 AdManager.showInterstitial(
                     activity = activity
@@ -108,11 +107,12 @@ fun GameScreen(
         ) {
 
             // =================================================
-            // TOP SECTION
+            // TOP SECTION & TOP BANNER
             // =================================================
 
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
                 // TOP BAR
@@ -208,7 +208,7 @@ fun GameScreen(
                         .fillMaxWidth()
                         .padding(
                             horizontal = 20.dp,
-                            vertical = 8.dp
+                            vertical = 6.dp
                         ),
                     horizontalArrangement =
                         Arrangement.SpaceBetween,
@@ -265,56 +265,63 @@ fun GameScreen(
                         }
                     }
                 }
-            }
 
-            // =================================================
-            // PUZZLE BOARD
-            // =================================================
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                contentAlignment =
-                    Alignment.Center
-            ) {
-
-                PuzzleBoard(
-                    gridWidth =
-                        level.gridWidth,
-                    gridHeight =
-                        level.gridHeight,
-                    arrows =
-                        uiState.remainingArrows,
-                    escapingArrowIds =
-                        uiState.escapingArrowIds,
-                    blockedArrowId =
-                        uiState.blockedArrowId,
-                    hintedArrowId =
-                        uiState.hintedArrowId,
-                    onArrowTapped =
-                        onArrowTapped
+                // 1. TOP BANNER AD (Above the puzzle)
+                AdManager.TopBannerView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
                 )
             }
 
             // =================================================
-            // BANNER AD (Between puzzle board and bottom controls)
+            // 2 & 3. LEFT BANNER, PUZZLE BOARD, RIGHT BANNER
             // =================================================
 
-            AdManager.BannerAdView(
+            Row(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                // LEFT BANNER AD (Side area beside the puzzle)
+                AdManager.LeftBannerView(
+                    modifier = Modifier.padding(end = 2.dp)
+                )
+
+                // PLAYABLE PUZZLE BOARD (CENTER)
+                Box(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .padding(horizontal = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    PuzzleBoard(
+                        gridWidth = level.gridWidth,
+                        gridHeight = level.gridHeight,
+                        arrows = uiState.remainingArrows,
+                        escapingArrowIds = uiState.escapingArrowIds,
+                        blockedArrowId = uiState.blockedArrowId,
+                        hintedArrowId = uiState.hintedArrowId,
+                        onArrowTapped = onArrowTapped
+                    )
+                }
+
+                // RIGHT BANNER AD (Side area beside the puzzle)
+                AdManager.RightBannerView(
+                    modifier = Modifier.padding(start = 2.dp)
+                )
+            }
 
             // =================================================
-            // BOTTOM CONTROLS
+            // BOTTOM CONTROLS & 4. BOTTOM BANNER
             // =================================================
 
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
                 Row(
@@ -322,7 +329,7 @@ fun GameScreen(
                         .fillMaxWidth()
                         .padding(
                             horizontal = 24.dp,
-                            vertical = 8.dp
+                            vertical = 6.dp
                         ),
                     horizontalArrangement =
                         Arrangement.SpaceEvenly,
@@ -478,17 +485,14 @@ fun GameScreen(
                         }
                     }
                 }
-            }
 
-            // =================================================
-            // BANNER AD
-            // =================================================
-            AdManager.BannerAdView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(vertical = 2.dp)
-            )
+                // 4. BOTTOM BANNER AD (Below puzzle & controls)
+                AdManager.BottomBannerView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp)
+                )
+            }
         }
 
         // =====================================================

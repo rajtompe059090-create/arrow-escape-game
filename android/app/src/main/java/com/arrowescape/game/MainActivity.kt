@@ -277,7 +277,7 @@ fun ArrowEscapeMainApp(
         WithdrawDialog(
             uiState = uiState,
             onRequestWithdrawal = { amount, upiId, onResult ->
-                viewModel.requestWithdrawal(amount, upiId, onResult)
+                viewModel.requestWithdrawalAdvanced(amount, upiId, onResult)
             },
             onDismiss = { showWithdrawDialog = false }
         )

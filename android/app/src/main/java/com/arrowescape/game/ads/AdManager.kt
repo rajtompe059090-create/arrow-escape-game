@@ -510,19 +510,19 @@ object AdManager {
     }
 
     // =========================================================
-    // 5. BANNER AD VIEW (REAL ANDROID ADVIEW WITH AdSize.BANNER)
+    // 5. BANNER AD VIEWS (4 GAMEPLAY PLACEMENTS: TOP, BOTTOM, LEFT, RIGHT)
     // =========================================================
 
     @Composable
     fun BannerAdView(
         modifier: Modifier = Modifier,
+        placementTag: String = "Banner",
         adUnitId: String = BANNER_ID
     ) {
         var isAdLoaded by remember { mutableStateOf(false) }
 
         Box(
             modifier = modifier
-                .fillMaxWidth()
                 .then(
                     if (isAdLoaded) {
                         Modifier.wrapContentHeight()
@@ -534,28 +534,27 @@ object AdManager {
         ) {
             AndroidView(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
+                    .wrapContentSize(),
                 factory = { context ->
                     AdView(context).apply {
                         setAdSize(AdSize.BANNER)
                         this.adUnitId = adUnitId
                         layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT
                         )
 
                         adListener = object : AdListener() {
                             override fun onAdLoaded() {
                                 isAdLoaded = true
-                                Log.d(TAG, "Banner loaded")
+                                Log.d(TAG, "$placementTag loaded")
                             }
 
                             override fun onAdFailedToLoad(error: LoadAdError) {
                                 isAdLoaded = false
                                 Log.w(
                                     TAG,
-                                    "Banner failed: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
+                                    "$placementTag failed: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
                                 )
 
                                 // Background safe retry after 30 seconds
@@ -563,29 +562,29 @@ object AdManager {
                                     try {
                                         loadAd(AdRequest.Builder().build())
                                     } catch (e: Exception) {
-                                        Log.w(TAG, "Banner auto-retry exception: ${e.message}")
+                                        Log.w(TAG, "$placementTag auto-retry exception: ${e.message}")
                                     }
                                 }, 30000L)
                             }
 
                             override fun onAdOpened() {
-                                Log.d(TAG, "Banner opened")
+                                Log.d(TAG, "$placementTag opened")
                             }
 
                             override fun onAdClosed() {
-                                Log.d(TAG, "Banner closed")
+                                Log.d(TAG, "$placementTag closed")
                             }
 
                             override fun onAdImpression() {
-                                Log.d(TAG, "Banner impression")
+                                Log.d(TAG, "$placementTag impression")
                             }
 
                             override fun onAdClicked() {
-                                Log.d(TAG, "Banner clicked")
+                                Log.d(TAG, "$placementTag clicked")
                             }
                         }
 
-                        Log.d(TAG, "Banner load requested")
+                        Log.d(TAG, "$placementTag load requested")
                         loadAd(AdRequest.Builder().build())
                     }
                 },
@@ -593,7 +592,7 @@ object AdManager {
                     try {
                         adView.destroy()
                     } catch (e: Exception) {
-                        Log.w(TAG, "Banner destroy exception: ${e.message}")
+                        Log.w(TAG, "$placementTag destroy exception: ${e.message}")
                     }
                 }
             )
@@ -602,11 +601,21 @@ object AdManager {
 
     @Composable
     fun TopBannerView(modifier: Modifier = Modifier) {
-        BannerAdView(modifier = modifier, adUnitId = TOP_BANNER_ID)
+        BannerAdView(modifier = modifier, placementTag = "Top banner", adUnitId = TOP_BANNER_ID)
     }
 
     @Composable
     fun BottomBannerView(modifier: Modifier = Modifier) {
-        BannerAdView(modifier = modifier, adUnitId = BOTTOM_BANNER_ID)
+        BannerAdView(modifier = modifier, placementTag = "Bottom banner", adUnitId = BOTTOM_BANNER_ID)
+    }
+
+    @Composable
+    fun LeftBannerView(modifier: Modifier = Modifier) {
+        BannerAdView(modifier = modifier, placementTag = "Left banner", adUnitId = BANNER_ID)
+    }
+
+    @Composable
+    fun RightBannerView(modifier: Modifier = Modifier) {
+        BannerAdView(modifier = modifier, placementTag = "Right banner", adUnitId = BANNER_ID)
     }
 }
