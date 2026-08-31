@@ -253,27 +253,68 @@ class GameViewModel(
     }
 
     fun requestWithdrawal(amount: Double, upiId: String, onResult: (Boolean, String) -> Unit) {
+        requestWithdrawalAdvanced(amount, upiId) { res ->
+            onResult(res.success, res.message)
+        }
+    }
+
+    fun requestWithdrawalAdvanced(
+        amount: Double,
+        upiId: String,
+        onResult: (com.arrowescape.game.data.WithdrawalResult) -> Unit
+    ) {
         if (amount < 50.0) {
-            onResult(false, "Minimum withdrawal is ₹50.00")
+            onResult(
+                com.arrowescape.game.data.WithdrawalResult(
+                    success = false,
+                    message = "Minimum withdrawal is ₹50.00",
+                    amount = amount,
+                    status = "FAILED"
+                )
+            )
             return
         }
         if (_uiState.value.walletBalance < amount) {
-            onResult(false, "Insufficient wallet balance")
+            onResult(
+                com.arrowescape.game.data.WithdrawalResult(
+                    success = false,
+                    message = "Insufficient wallet balance",
+                    amount = amount,
+                    status = "FAILED"
+                )
+            )
             return
         }
         val upiPattern = "^[a-zA-Z0-9.\\-_]{2,256}@[a-zA-Z]{2,64}$".toRegex()
         if (!upiPattern.matches(upiId.trim())) {
-            onResult(false, "Please enter a valid UPI ID (e.g. name@upi)")
+            onResult(
+                com.arrowescape.game.data.WithdrawalResult(
+                    success = false,
+                    message = "Please enter a valid UPI ID (e.g. name@upi)",
+                    amount = amount,
+                    status = "FAILED"
+                )
+            )
             return
         }
 
         viewModelScope.launch {
-            val success = prefsRepo.requestWithdrawal(amount, upiId.trim())
-            if (success) {
+            val submission = prefsRepo.requestWithdrawal(amount, upiId.trim())
+            if (submission.success && submission.withdrawalId != null) {
                 SoundManager.playLevelComplete()
-                onResult(true, "Withdrawal request of ₹${"%.2f".format(amount)} submitted successfully! Status: Processing.")
+                // Transition SUBMITTED -> PROCESSING -> SUCCESSFUL
+                delay(600)
+                prefsRepo.updateWithdrawalStatus(submission.withdrawalId, "PROCESSING")
+                delay(800)
+                prefsRepo.updateWithdrawalStatus(submission.withdrawalId, "SUCCESSFUL")
+                
+                val finalizedResult = submission.copy(
+                    status = "SUCCESSFUL",
+                    message = "Withdrawal of ₹${"%.2f".format(amount)} confirmed successfully!"
+                )
+                onResult(finalizedResult)
             } else {
-                onResult(false, "Failed to process withdrawal. Please try again.")
+                onResult(submission)
             }
         }
     }

@@ -17,9 +17,22 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_settings")
+
+data class WithdrawalResult(
+    val success: Boolean,
+    val message: String,
+    val withdrawalId: String? = null,
+    val amount: Double = 0.0,
+    val maskedUpi: String? = null,
+    val timestamp: Long = System.currentTimeMillis(),
+    val status: String = "SUBMITTED"
+)
 
 data class UserPreferences(
     val unlockedLevel: Int,
@@ -183,30 +196,155 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
-    suspend fun requestWithdrawal(amount: Double, upiId: String): Boolean {
-        var success = false
+    fun generateWithdrawalId(): String {
+        val dateStr = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
+        val randomPart = UUID.randomUUID().toString().replace("-", "").take(8).uppercase(Locale.US)
+        return "WD-$dateStr-$randomPart"
+    }
+
+    fun maskUpiId(upiId: String): String {
+        val trimmed = upiId.trim()
+        val atIndex = trimmed.indexOf('@')
+        if (atIndex <= 0) return trimmed
+        val handle = trimmed.substring(0, atIndex)
+        val domain = trimmed.substring(atIndex)
+        val visibleChars = if (handle.length <= 2) handle.take(1) else handle.take(2)
+        return "$visibleChars***$domain"
+    }
+
+    suspend fun requestWithdrawal(
+        amount: Double,
+        upiId: String,
+        providedWithdrawalId: String? = null
+    ): WithdrawalResult {
+        var result = WithdrawalResult(
+            success = false,
+            message = "Withdrawal could not be processed.",
+            amount = amount,
+            status = "FAILED"
+        )
+
+        val cleanUpi = upiId.trim()
+        val maskedUpi = maskUpiId(cleanUpi)
+
         context.dataStore.edit { prefs ->
             val currentWallet = prefs[Keys.WALLET_BALANCE] ?: 0.0
-            if (currentWallet >= amount && amount >= 50.0) {
-                prefs[Keys.WALLET_BALANCE] = currentWallet - amount
+            val history = parseTransactions(prefs[Keys.TRANSACTIONS_JSON] ?: "[]").toMutableList()
 
-                val history = parseTransactions(prefs[Keys.TRANSACTIONS_JSON] ?: "[]").toMutableList()
-                history.add(
-                    0,
-                    EarningTransaction(
-                        id = "tx_wdr_${UUID.randomUUID().toString().take(8)}",
-                        title = "UPI Withdrawal ($upiId)",
-                        amount = amount,
-                        timestamp = System.currentTimeMillis(),
-                        type = TransactionType.WITHDRAWAL,
-                        status = "PROCESSING"
+            // Idempotency check: if withdrawal ID already submitted, return existing record
+            if (providedWithdrawalId != null) {
+                val existing = history.firstOrNull { it.withdrawalId == providedWithdrawalId || it.id == providedWithdrawalId }
+                if (existing != null) {
+                    result = WithdrawalResult(
+                        success = true,
+                        message = "Existing withdrawal request found: ${existing.status}",
+                        withdrawalId = existing.withdrawalId ?: existing.id,
+                        amount = existing.amount,
+                        maskedUpi = existing.maskedUpiId ?: maskedUpi,
+                        timestamp = existing.timestamp,
+                        status = existing.status
                     )
+                    return@edit
+                }
+            }
+
+            if (amount < 50.0) {
+                result = WithdrawalResult(
+                    success = false,
+                    message = "Minimum withdrawal amount is ₹50.00",
+                    amount = amount,
+                    status = "FAILED"
                 )
+                return@edit
+            }
+
+            if (currentWallet < amount) {
+                result = WithdrawalResult(
+                    success = false,
+                    message = "Insufficient wallet balance (₹${"%.2f".format(currentWallet)} available)",
+                    amount = amount,
+                    status = "FAILED"
+                )
+                return@edit
+            }
+
+            // Deduct balance and create new withdrawal record
+            val finalWithdrawalId = providedWithdrawalId ?: generateWithdrawalId()
+            prefs[Keys.WALLET_BALANCE] = currentWallet - amount
+
+            val now = System.currentTimeMillis()
+            val newTx = EarningTransaction(
+                id = "tx_${finalWithdrawalId}",
+                title = "UPI Withdrawal ($maskedUpi)",
+                amount = amount,
+                timestamp = now,
+                type = TransactionType.WITHDRAWAL,
+                status = "SUBMITTED",
+                withdrawalId = finalWithdrawalId,
+                maskedUpiId = maskedUpi
+            )
+
+            history.add(0, newTx)
+            prefs[Keys.TRANSACTIONS_JSON] = serializeTransactions(history)
+
+            result = WithdrawalResult(
+                success = true,
+                message = "Withdrawal request submitted successfully",
+                withdrawalId = finalWithdrawalId,
+                amount = amount,
+                maskedUpi = maskedUpi,
+                timestamp = now,
+                status = "SUBMITTED"
+            )
+        }
+
+        return result
+    }
+
+    suspend fun updateWithdrawalStatus(
+        withdrawalId: String,
+        newStatus: String
+    ): Boolean {
+        var transitioned = false
+        var notificationPayload: WithdrawalNotificationPayload? = null
+
+        context.dataStore.edit { prefs ->
+            val history = parseTransactions(prefs[Keys.TRANSACTIONS_JSON] ?: "[]").toMutableList()
+            val index = history.indexOfFirst { it.withdrawalId == withdrawalId || it.id == withdrawalId }
+            if (index >= 0) {
+                val currentTx = history[index]
+                // Idempotency: A withdrawal can only transition to SUCCESSFUL once
+                if (currentTx.status == "SUCCESSFUL" && (newStatus == "SUCCESSFUL" || newStatus == "SUCCESS")) {
+                    return@edit
+                }
+
+                val updatedTx = currentTx.copy(status = newStatus)
+                history[index] = updatedTx
                 prefs[Keys.TRANSACTIONS_JSON] = serializeTransactions(history)
-                success = true
+                transitioned = true
+
+                if (newStatus == "SUCCESSFUL" || newStatus == "SUCCESS") {
+                    val uid = prefs[Keys.UID] ?: "AE-0590-7812"
+                    val username = prefs[Keys.USERNAME] ?: "player_0590"
+                    notificationPayload = WithdrawalNotificationPayload(
+                        withdrawalId = currentTx.withdrawalId ?: currentTx.id,
+                        userId = uid,
+                        username = username,
+                        amount = currentTx.amount,
+                        maskedUpiId = currentTx.maskedUpiId ?: maskUpiId(currentTx.title),
+                        timestamp = currentTx.timestamp,
+                        status = "SUCCESSFUL"
+                    )
+                }
             }
         }
-        return success
+
+        // Send admin notification if genuinely transitioned to SUCCESSFUL
+        notificationPayload?.let { payload ->
+            DefaultWithdrawalNotificationService.notifyWithdrawalSuccessful(payload)
+        }
+
+        return transitioned
     }
 
     suspend fun addHint() {
@@ -319,7 +457,9 @@ class UserPreferencesRepository(private val context: Context) {
                         timestamp = obj.getLong("timestamp"),
                         type = TransactionType.valueOf(obj.getString("type")),
                         levelId = if (obj.has("levelId") && !obj.isNull("levelId")) obj.getInt("levelId") else null,
-                        status = obj.optString("status", "SUCCESS")
+                        status = obj.optString("status", "SUCCESS"),
+                        withdrawalId = if (obj.has("withdrawalId") && !obj.isNull("withdrawalId")) obj.getString("withdrawalId") else null,
+                        maskedUpiId = if (obj.has("maskedUpiId") && !obj.isNull("maskedUpiId")) obj.getString("maskedUpiId") else null
                     )
                 )
             }
@@ -338,6 +478,8 @@ class UserPreferencesRepository(private val context: Context) {
             obj.put("type", tx.type.name)
             tx.levelId?.let { obj.put("levelId", it) }
             obj.put("status", tx.status)
+            tx.withdrawalId?.let { obj.put("withdrawalId", it) }
+            tx.maskedUpiId?.let { obj.put("maskedUpiId", it) }
             jsonArray.put(obj)
         }
         return jsonArray.toString()

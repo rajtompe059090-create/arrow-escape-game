@@ -71,7 +71,7 @@ fun GameScreen(
     }
 
     // =========================================================
-    // LEVEL COMPLETE -> INTERSTITIAL -> COMPLETE DIALOG
+    // LEVEL COMPLETE -> VIDEO AD (EVERY 5 LEVELS) -> COMPLETE DIALOG
     // =========================================================
 
     LaunchedEffect(
@@ -79,23 +79,18 @@ fun GameScreen(
         level.id
     ) {
         if (uiState.isLevelCompleted) {
-
-            isShowingCompleteDialog = false
-
-            if (activity != null) {
-
+            val shouldShowVideoAd = (level.id % 5 == 0)
+            if (shouldShowVideoAd && activity != null) {
+                isShowingCompleteDialog = false
                 AdManager.showInterstitial(
                     activity = activity
                 ) {
                     isShowingCompleteDialog = true
                 }
-
             } else {
-
                 isShowingCompleteDialog = true
             }
         } else {
-
             isShowingCompleteDialog = false
         }
     }

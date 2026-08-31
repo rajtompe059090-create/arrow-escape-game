@@ -15,5 +15,7 @@ data class EarningTransaction(
     val timestamp: Long,
     val type: TransactionType,
     val levelId: Int? = null,
-    val status: String = "SUCCESS" // SUCCESS, PENDING, PROCESSING
+    val status: String = "SUCCESS", // SUBMITTED, PROCESSING, SUCCESSFUL, FAILED, SUCCESS
+    val withdrawalId: String? = null,
+    val maskedUpiId: String? = null
 )

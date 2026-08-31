@@ -75,6 +75,7 @@ object AdManager {
     private var appOpenAd: AppOpenAd? = null
     private val isAppOpenLoading = AtomicBoolean(false)
     private var appOpenLoadTime: Long = 0L
+    private var appOpenRetryAttempt = 0
 
     // =========================================================
     // 1. ADMOB INITIALIZATION
@@ -402,6 +403,8 @@ object AdManager {
             return
         }
 
+        Log.d(TAG, "App Open load requested")
+
         AppOpenAd.load(
             context,
             APP_OPEN_ID,
@@ -411,6 +414,7 @@ object AdManager {
                     appOpenAd = ad
                     isAppOpenLoading.set(false)
                     appOpenLoadTime = Date().time
+                    appOpenRetryAttempt = 0
                     Log.d(TAG, "App Open loaded")
                 }
 
@@ -421,6 +425,15 @@ object AdManager {
                         TAG,
                         "App Open failed: code=${error.code}, message=${error.message}, domain=${error.domain}, responseInfo=${error.responseInfo}"
                     )
+
+                    // Controlled exponential backoff retry (5s, 10s, 20s, max 30s) up to 5 attempts
+                    if (appOpenRetryAttempt < 5) {
+                        appOpenRetryAttempt++
+                        val delayMs = (5000L * (1 shl (appOpenRetryAttempt - 1))).coerceAtMost(30000L)
+                        mainHandler.postDelayed({
+                            loadAppOpenAd(context.applicationContext)
+                        }, delayMs)
+                    }
                 }
             }
         )

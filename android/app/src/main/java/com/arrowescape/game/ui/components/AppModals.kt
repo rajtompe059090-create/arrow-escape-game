@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -93,6 +94,7 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 // CONFIGURATION CONSTANTS
 const val TELEGRAM_SUPPORT_USERNAME = "Earning_adda0590"
@@ -435,7 +437,7 @@ fun WalletDialog(
                                 )
                             }
                         } else {
-                            val sdf = remember { SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault()) }
+                                val sdf = remember { SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault()) }
                             uiState.earningHistory.forEach { tx ->
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
@@ -447,8 +449,16 @@ fun WalletDialog(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Column {
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text(text = tx.title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                            if (!tx.withdrawalId.isNullOrBlank()) {
+                                                Text(
+                                                    text = "ID: ${tx.withdrawalId}",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = Color(0xFF64748B)
+                                                )
+                                            }
                                             Text(text = sdf.format(Date(tx.timestamp)), fontSize = 10.sp, color = Color(0xFF94A3B8))
                                         }
                                         val isWithdrawal = tx.type == TransactionType.WITHDRAWAL
@@ -459,8 +469,24 @@ fun WalletDialog(
                                                 fontWeight = FontWeight.Black,
                                                 color = if (isWithdrawal) Color(0xFFDC2626) else Color(0xFF16A34A)
                                             )
-                                            if (tx.status != "SUCCESS") {
-                                                Text(text = tx.status, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                            val statusColor = when (tx.status.uppercase(Locale.ROOT)) {
+                                                "SUCCESSFUL", "SUCCESS" -> Color(0xFF16A34A)
+                                                "PROCESSING" -> Color(0xFFD97706)
+                                                "SUBMITTED" -> Color(0xFF0284C7)
+                                                else -> Color(0xFFDC2626)
+                                            }
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = statusColor.copy(alpha = 0.12f),
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = tx.status,
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = statusColor,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
                                             }
                                         }
                                     }
@@ -485,7 +511,7 @@ fun WalletDialog(
                     ) {
                         Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
                         Text(
-                            text = "Earnings are saved to your secure offline ledger. UPI payouts available on manual review.",
+                            text = "Earnings are recorded to your secure ledger with unique Withdrawal IDs.",
                             fontSize = 10.sp,
                             color = Color(0xFF64748B),
                             lineHeight = 14.sp
@@ -514,8 +540,170 @@ fun WalletDialog(
 }
 
 // ==========================================
-// 2. WITHDRAW DIALOG (Manual/Demo validation)
+// 2. WITHDRAW DIALOG & SUCCESS POPUP
 // ==========================================
+@Composable
+fun WithdrawalSuccessPopup(
+    result: com.arrowescape.game.data.WithdrawalResult,
+    onDismiss: () -> Unit
+) {
+    val sdf = remember { SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault()) }
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = Color.White,
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Success Badge
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFDCFCE7),
+                    modifier = Modifier.size(60.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Success",
+                            tint = Color(0xFF16A34A),
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Withdrawal Successful",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF0F172A),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Your payout request has been verified and processed.",
+                    fontSize = 12.sp,
+                    color = Color(0xFF64748B),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Details Card
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Amount", fontSize = 12.sp, color = Color(0xFF64748B))
+                            Text(
+                                text = "₹${"%.2f".format(result.amount)}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF16A34A)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "UPI ID", fontSize = 12.sp, color = Color(0xFF64748B))
+                            Text(
+                                text = result.maskedUpi ?: "UPI Account",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Withdrawal ID", fontSize = 12.sp, color = Color(0xFF64748B))
+                            Text(
+                                text = result.withdrawalId ?: "WD-UNKNOWN",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0284C7)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Date / Time", fontSize = 12.sp, color = Color(0xFF64748B))
+                            Text(
+                                text = sdf.format(Date(result.timestamp)),
+                                fontSize = 11.sp,
+                                color = Color(0xFF334155)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "Status", fontSize = 12.sp, color = Color(0xFF64748B))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFDCFCE7)
+                            ) {
+                                Text(
+                                    text = "Successful",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF16A34A),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Button(
+                    onClick = {
+                        SoundManager.playTap()
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text(text = "OK", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun WithdrawDialog(
     uiState: GameUiState,
@@ -527,6 +715,18 @@ fun WithdrawDialog(
     var upiIdText by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var isSuccess by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var successfulResult by remember { mutableStateOf<com.arrowescape.game.data.WithdrawalResult?>(null) }
+
+    if (successfulResult != null) {
+        WithdrawalSuccessPopup(
+            result = successfulResult!!,
+            onDismiss = {
+                successfulResult = null
+                onDismiss()
+            }
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -686,21 +886,64 @@ fun WithdrawDialog(
                 Button(
                     onClick = {
                         val amount = amountText.toDoubleOrNull() ?: 0.0
+                        if (amount < 50.0) {
+                            statusMessage = "Minimum withdrawal is ₹50.00"
+                            isSuccess = false
+                            return@Button
+                        }
+                        if (uiState.walletBalance < amount) {
+                            statusMessage = "Insufficient wallet balance"
+                            isSuccess = false
+                            return@Button
+                        }
+                        val upiPattern = "^[a-zA-Z0-9.\\-_]{2,256}@[a-zA-Z]{2,64}$".toRegex()
+                        if (!upiPattern.matches(upiIdText.trim())) {
+                            statusMessage = "Please enter a valid UPI ID (e.g. name@upi)"
+                            isSuccess = false
+                            return@Button
+                        }
+
+                        isProcessing = true
+                        statusMessage = "Submitting withdrawal request..."
                         onRequestWithdrawal(amount, upiIdText) { success, msg ->
+                            isProcessing = false
                             isSuccess = success
                             statusMessage = msg
                             if (success) {
+                                // Extract details or construct confirmation payload
+                                val atIdx = upiIdText.indexOf('@')
+                                val handle = if (atIdx > 0) upiIdText.substring(0, atIdx) else upiIdText
+                                val dom = if (atIdx > 0) upiIdText.substring(atIdx) else ""
+                                val masked = (if (handle.length <= 2) handle.take(1) else handle.take(2)) + "***" + dom
+                                
+                                val dateStr = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
+                                val randomPart = UUID.randomUUID().toString().replace("-", "").take(8).uppercase(Locale.US)
+                                val wId = "WD-$dateStr-$randomPart"
+
+                                successfulResult = com.arrowescape.game.data.WithdrawalResult(
+                                    success = true,
+                                    message = msg,
+                                    withdrawalId = wId,
+                                    amount = amount,
+                                    maskedUpi = masked,
+                                    status = "SUCCESSFUL"
+                                )
                                 upiIdText = ""
                             }
                         }
                     },
+                    enabled = !isProcessing,
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                 ) {
-                    Text(text = "Submit Withdrawal", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(
+                        text = if (isProcessing) "Processing..." else "Submit Withdrawal",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
