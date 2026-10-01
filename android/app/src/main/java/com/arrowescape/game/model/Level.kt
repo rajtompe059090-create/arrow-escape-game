@@ -3,15 +3,15 @@ package com.arrowescape.game.model
 enum class Difficulty(
     val displayName: String,
     val levelRange: String,
-    val rewardRupees: Double
+    val rewardCoins: Int
 ) {
-    EASY("Easy", "Levels 1–100", 1.00),
-    NORMAL("Normal", "Levels 101–200", 2.00),
-    HARD("Hard", "Levels 201–300", 3.00),
-    VERY_HARD("Very Hard", "Levels 301–400", 5.00),
-    MASTER("Master", "Levels 401–600", 10.00),
-    GRANDMASTER("Grandmaster", "Levels 601–800", 15.00),
-    LEGENDARY("Legendary", "Levels 801+", 25.00);
+    EASY("Easy", "Levels 1–100", 10),
+    NORMAL("Normal", "Levels 101–200", 20),
+    HARD("Hard", "Levels 201–300", 30),
+    VERY_HARD("Very Hard", "Levels 301–400", 50),
+    MASTER("Master", "Levels 401–600", 100),
+    GRANDMASTER("Grandmaster", "Levels 601–800", 150),
+    LEGENDARY("Legendary", "Levels 801+", 250);
 
     companion object {
         fun fromLevel(levelId: Int): Difficulty {
@@ -35,5 +35,5 @@ data class Level(
     val gridHeight: Int,
     val difficulty: Difficulty,
     val arrows: List<Arrow>,
-    val rewardRupees: Double
+    val rewardCoins: Int
 )

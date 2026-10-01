@@ -4,18 +4,16 @@ enum class TransactionType {
     LEVEL_REWARD,
     DAILY_REWARD,
     AD_BONUS,
-    HINT_REWARD,
-    WITHDRAWAL
+    HINT_PURCHASE,
+    LIFE_PURCHASE
 }
 
 data class EarningTransaction(
     val id: String,
     val title: String,
-    val amount: Double,
+    val amount: Int,
     val timestamp: Long,
     val type: TransactionType,
     val levelId: Int? = null,
-    val status: String = "SUCCESS", // SUBMITTED, PROCESSING, SUCCESSFUL, FAILED, SUCCESS
-    val withdrawalId: String? = null,
-    val maskedUpiId: String? = null
+    val status: String = "SUCCESS"
 )

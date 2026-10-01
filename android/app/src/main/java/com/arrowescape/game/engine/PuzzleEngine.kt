@@ -208,7 +208,7 @@ object PuzzleEngine {
         return pointsSet.toList()
     }
 
-    fun calculateRewardRupees(levelId: Int): Double {
-        return Difficulty.fromLevel(levelId).rewardRupees
+    fun calculateRewardCoins(levelId: Int): Int {
+        return Difficulty.fromLevel(levelId).rewardCoins
     }
 }

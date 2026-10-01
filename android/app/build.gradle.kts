@@ -22,6 +22,26 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = project.findProperty("KEYSTORE_FILE") as? String
+                ?: System.getenv("KEYSTORE_FILE")
+            val keystorePassword = project.findProperty("KEYSTORE_PASSWORD") as? String
+                ?: System.getenv("KEYSTORE_PASSWORD")
+            val keyAliasStr = project.findProperty("KEY_ALIAS") as? String
+                ?: System.getenv("KEY_ALIAS")
+            val keyPasswordStr = project.findProperty("KEY_PASSWORD") as? String
+                ?: System.getenv("KEY_PASSWORD")
+
+            if (!keystorePath.isNullOrBlank() && file(keystorePath).exists()) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keyAliasStr
+                keyPassword = keyPasswordStr
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -31,7 +51,11 @@ android {
                 "proguard-rules.pro"
             )
 
-            signingConfig = signingConfigs.getByName("debug")
+            // Only attach release signing if production keystore is supplied
+            val releaseConfig = signingConfigs.getByName("release")
+            if (releaseConfig.storeFile != null) {
+                signingConfig = releaseConfig
+            }
         }
 
         debug {

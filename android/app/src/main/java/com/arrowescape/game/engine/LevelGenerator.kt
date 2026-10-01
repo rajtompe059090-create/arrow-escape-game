@@ -55,7 +55,7 @@ object LevelGenerator {
      */
     fun generateLevel(levelId: Int): Level {
         val difficulty = Difficulty.fromLevel(levelId)
-        val rewardRupees = difficulty.rewardRupees
+        val rewardCoins = difficulty.rewardCoins
         val name = getLevelName(levelId, difficulty)
 
         val gridDim = calculateGridDimension(levelId)
@@ -128,7 +128,7 @@ object LevelGenerator {
                             gridHeight = gridHeight,
                             difficulty = difficulty,
                             arrows = candidate,
-                            rewardRupees = rewardRupees
+                            rewardCoins = rewardCoins
                         )
                     }
 
@@ -148,7 +148,7 @@ object LevelGenerator {
                 gridHeight = gridHeight,
                 difficulty = difficulty,
                 arrows = bestCandidate,
-                rewardRupees = rewardRupees
+                rewardCoins = rewardCoins
             )
         }
 
@@ -157,7 +157,7 @@ object LevelGenerator {
             levelId = levelId,
             name = name,
             difficulty = difficulty,
-            rewardRupees = rewardRupees,
+            rewardCoins = rewardCoins,
             gridWidth = gridWidth,
             gridHeight = gridHeight,
             targetCount = minArrows
@@ -337,7 +337,7 @@ object LevelGenerator {
         levelId: Int,
         name: String,
         difficulty: Difficulty,
-        rewardRupees: Double,
+        rewardCoins: Int,
         gridWidth: Int,
         gridHeight: Int,
         targetCount: Int

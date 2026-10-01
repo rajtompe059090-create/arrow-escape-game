@@ -47,14 +47,14 @@ object AdManager {
     // ADMOB APPLICATION & AD UNIT IDS (PRESERVED EXACTLY)
     // =========================================================
 
-    const val APP_ID = "ca-app-pub-6146868530948467~3047670393"
+    const val APP_ID = "ca-app-pub-6146868530948467~3001938904"
     // Real Production AdMob Banner Ad Unit ID
-    const val BANNER_ID = "ca-app-pub-6146868530948467/4890772086"
+    const val BANNER_ID = "ca-app-pub-6146868530948467/3404340146"
     const val PROD_BANNER_ID = BANNER_ID
     const val TEST_BANNER_ID = "ca-app-pub-3940256099942544/6300978111"
     const val TOP_BANNER_ID = BANNER_ID
     const val BOTTOM_BANNER_ID = BANNER_ID
-    const val INTERSTITIAL_ID = "ca-app-pub-6146868530948467/8819293283"
+    const val INTERSTITIAL_ID = "ca-app-pub-6146868530948467/3496762929"
     const val REWARDED_ID = "ca-app-pub-6146868530948467/5664321378"
     const val APP_OPEN_ID = "ca-app-pub-6146868530948467/2935989754"
 
